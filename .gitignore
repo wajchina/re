@@ -5,6 +5,9 @@ config.yml
 *_vault_key
 _temp/
 _files/
+site/
+inventories/
+!inventories/demo
 
 # gitbook build
 _book/
