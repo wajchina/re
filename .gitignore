@@ -6,8 +6,8 @@ config.yml
 _temp/
 _files/
 site/
-inventories/
-!inventories/demo
+ansible/inputs/*
+!ansible/inputs/example/
 
 # gitbook build
 _book/
