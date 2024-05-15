@@ -1,0 +1,35 @@
+---
+
+ntp_servers:
+  - "0.centos.pool.ntp.org"
+  - "1.centos.pool.ntp.org"
+  - "2.centos.pool.ntp.org"
+  - "3.centos.pool.ntp.org"
+
+is_ntp_server: True
+
+nfs_exports:
+  - "/export/nas1    *(rw,sync) example-manager-1(rw,sync,no_root_squash)"
+
+kvm_vm_disk_path: "/var/lib/libvirt/images/"
+virtual_machines:
+  - name: example-re-1
+    root_pwd: 'YOUR_PASSWORD'
+    mem: 8192
+    cpu: 4
+    disk: 100
+    iso: "/opt/CentOS-7-x86_64-Everything-2207-02.iso"
+    net:
+      - name: eth0
+        bridge: br1
+        bootproto: static
+        ip: 192.168.100.100
+        netmask: 255.255.255.0
+        gateway: 192.168.100.254
+        nameserver:
+          - 114.114.114.114
+      - name: eth1
+        bridge: br2
+        bootproto: static
+        ip: 10.10.10.100
+        netmask: 255.255.255.0

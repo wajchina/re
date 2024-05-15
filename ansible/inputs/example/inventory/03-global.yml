@@ -1,0 +1,263 @@
+---
+
+# all groups vars
+all:
+  vars:
+
+    os_partition:
+      centos_default: |
+        clearpart --all --initlabel --drives=$ROOTDRIVE
+        zerombr
+        part /boot --ondisk=$ROOTDRIVE --fstype="xfs" --size=1024
+        part /boot/efi --ondisk=$ROOTDRIVE --fstype="efi" --size=256
+        part swap --ondisk=$ROOTDRIVE --fstype="swap" --size=8192
+        part /tmp --ondisk=$ROOTDRIVE --fstype="xfs" --size=16384
+        part / --ondisk=$ROOTDRIVE --fstype="xfs" --size=1 --grow
+      centos_sge_execution: |
+        clearpart --all --initlabel --drives=$ROOTDRIVE
+        zerombr
+        part /boot --ondisk=$ROOTDRIVE --fstype="xfs" --size=1024
+        part /boot/efi --ondisk=$ROOTDRIVE --fstype="efi" --size=256
+        part swap --ondisk=$ROOTDRIVE --fstype="swap" --size=16384
+        part / --ondisk=$ROOTDRIVE --fstype="xfs" --size=30720
+        part /var --ondisk=$ROOTDRIVE --fstype="xfs" --size=30720
+        part /tmp --ondisk=$ROOTDRIVE --fstype="xfs" --size=1 --grow
+
+    kickstart_partition: |
+      %pre --log=/tmp/ks_pre-partition.log
+      
+      # auto partition
+      DIR="/sys/block"
+      DISK_BY_PATH="/dev/disk/by-path"
+      
+      # minimum size of hard drive needed specified in GIGABYTES
+      MINSIZE=40
+      MAXSIZE=163840
+      ROOTDRIVE=""
+      
+      # /sys/block/*/size is in 512 byte chunks
+      # The loop first checks NVME then SATA/SAS drives:
+      for d in $(ls -l $DISK_BY_PATH | grep -v usb | egrep -w '[s,v,h]d[a-z]{1,2}' | awk '{print $9}')
+      do
+        echo "--INFO: DISK PATH is: $d"
+        if [ -L $DISK_BY_PATH/$d ]; then
+          DEV=$(ls -ld $DISK_BY_PATH/$d | awk '{print $NF}')
+          DEV=$(basename $DEV)
+          echo "--INFO: DISK NAME is: $DEV"
+          if [ -d $DIR/$DEV ]; then
+          echo "--INFO: $DIR/$DEV exists"
+              if [[ "`cat $DIR/$DEV/removable`" = "0" ]]; then
+                GB=$((`cat $DIR/$DEV/size`/2**21))
+                if [ $GB -ge $MINSIZE -a $GB -le $MAXSIZE -a -z "$ROOTDRIVE" ]; then
+                  echo "--INFO: $DIR/$DEV size $GB GB in range [$MINSIZE ~ $MAXSIZE] GB"
+                  ROOTDRIVE=$DEV
+                  echo "--INFO: choose disk: $DEV size: $GB as installation disk."
+                else
+                  echo "--INFO: ignore disk: $DEV size: $GB."
+                fi
+              else
+                echo "--INFO: $DIR/$DEV is removable, maybe a usb disk, ignore it."
+              fi
+          else
+              echo "--ERROR: $DIR/$DEV not exists!"
+          fi
+        else
+          echo "--ERROR: $DISK_BY_PATH/$d not exists!"
+        fi
+      done
+      
+      echo "--INFO: Choosing ROOTDRIVE: $ROOTDRIVE"
+      
+      cat > /tmp/partition.cfg <<EOF
+      
+      {{ os_partition[image_ks_partition] }}
+      
+      EOF
+      %end
+
+    kickstart_network: |
+      %pre --log=/tmp/ks_pre-network.log --interpreter=/usr/bin/bash
+      
+      # check bash version
+      /usr/bin/bash --version
+      
+      # configure network bonding depend on grendel input
+      # got input from grendel
+      {% raw %}
+      host_interfaces_num={{ (len $.host.Interfaces) }}
+      echo "host_interfaces_num: $host_interfaces_num"
+      
+      INT_NET_IP="{{ $.nic.IP }}"
+      echo "INT_NET_IP: $INT_NET_IP"
+      INT_NET_MAC="{{ $.nic.MAC }}"
+      echo "INT_NET_MAC: $INT_NET_MAC"
+      INT_NET_FQDN="{{ $.nic.FQDN }}"
+      echo "INT_NET_FQDN: $INT_NET_FQDN"
+      
+      if [ $host_interfaces_num -ge 2 ]; then
+          echo "--INFO: input 2 interfaces, set EXT_NET_IP, EXT_NET_MAC, EXT_NET_FQDN"
+          {{ $ext_nic := index $.host.Interfaces 0 }}
+          EXT_NET_IP="{{ $ext_nic.IP }}"
+          echo "EXT_NET_IP: $EXT_NET_IP"
+          EXT_NET_MAC="{{ $ext_nic.MAC }}"
+          echo "EXT_NET_MAC: $EXT_NET_MAC"
+          EXT_NET_FQDN="{{ $ext_nic.FQDN }}"
+          echo "EXT_NET_FQDN: $EXT_NET_FQDN"
+      else
+          echo "--INFO: user input less than 2 interfaces, not set EXT_NET_IP, EXT_NET_MAC, EXT_NET_FQDN"
+      fi
+      {% endraw %}
+      
+      get_gw_and_netmask ()
+      {
+        # get default gateway and GWDEV
+        DEFGW=`ip route | grep default | awk '{print $3}' | head -n1`
+        GWDEV=`ip route | grep default | awk '{print $5}' | head -n1`
+        echo "DEFGW: $DEFGW GWDEV: $GWDEV"
+        
+        # get internal net netmask
+        ip -4 -o a sh | grep -q "$INT_NET_IP"
+        if [ $? == 0 ]; then
+          IPADDRMASK=`ip -4 -o a sh | grep "$INT_NET_IP" | awk '/inet/{print $4}'`
+          PREFIXMASK=`echo $IPADDRMASK | awk -F'/' '{print $2}'`
+          # converts to x.x.x.x mask value
+          maskfromprefix $PREFIXMASK
+          INT_NET_MASK=${NETMASK}
+          echo "--INFO: got internal netmask, setting netmask to $INT_NET_MASK"
+        else
+          NETMASK="255.255.255.0"
+          INT_NET_MASK=${NETMASK}
+          echo "--INFO: not got internal netmask, setting netmask to $INT_NET_MASK"
+        fi
+      
+        # get external net netmask
+        ip -4 -o a sh | grep -q "$EXT_NET_IP"
+        if [ $? == 0 ]; then
+          IPADDRMASK=`ip -4 -o a sh | grep "$EXT_NET_IP" | awk '/inet/{print $4}'`
+          PREFIXMASK=`echo $IPADDRMASK | awk -F'/' '{print $2}'`
+          # converts to x.x.x.x mask value
+          maskfromprefix $PREFIXMASK
+          EXT_NET_MASK=${NETMASK}
+          echo "--INFO: got external netmask, setting netmask to $EXT_NET_MASK"
+        else
+          NETMASK="255.255.255.0"
+          EXT_NET_MASK=${NETMASK}
+          echo "--INFO: not got external netmask, setting netmask to $EXT_NET_MASK"
+        fi
+      }
+      
+      # converts netmask CIDR fromat to x.x.x.x mask value, RETURN: var NETMASK
+      maskfromprefix ()
+      {
+        prefixlen=$1
+        maskval=$((0xffffffff>>(32-prefixlen)<<(32-prefixlen)))
+        mask1=$((maskval >> 24))
+        mask2=$((maskval >> 16 & 0xff))
+        mask3=$((maskval >> 8 & 0xff))
+        mask4=$((maskval & 0xff))
+        #echo $mask1.$mask2.$mask3.$mask4
+        NETMASK=$mask1.$mask2.$mask3.$mask4
+      }
+      
+      check_nic_ports ()
+      {
+        ifname_pcislot_mappings=()
+        int_ifnames=()
+      
+        grep -q PCI_SLOT_NAME /sys/class/net/*/device/uevent
+        if [ $? == 0 ]; then
+          while IFS= read -r line; do
+              ifname_pcislot_mappings+=("${line}")
+          done < <( grep PCI_SLOT_NAME /sys/class/net/*/device/uevent | awk -F '[/=]' '{print $5,$NF}' )
+        else
+          ifname_pcislot_mappings+=()
+        fi
+        echo "--INFO: ifname_pcislot_mappings: $ifname_pcislot_mappings"
+      
+        # Grep mac_address /sys/class/net/*/address directly will return both physical and logical interfaces.
+        for item in "${ifname_pcislot_mappings[@]}";
+        do
+            ifname=$(echo "${item}" | awk '{print $1}')
+            mac=$(cat /sys/class/net/${ifname}/address)
+            if [ "${mac}" == "${INT_NET_MAC}" ]; then
+                int_ifname1=${ifname}
+                int_ifname_pcislot1=$(grep PCI_SLOT_NAME /sys/class/net/${int_ifname1}/device/uevent | awk -F '=' '{print $NF}')
+                int_ifname_pcislot=${int_ifname_pcislot1%%.*}
+            fi
+        done
+      
+        for item in "${ifname_pcislot_mappings[@]}";
+        do
+            ifname=$(echo "${item}" | awk '{print $1}')
+            if [ ! -z "${int_ifname_pcislot}" ] && [[ ${item} == *"${int_ifname_pcislot}"* ]]; then
+                int_ifnames+=(${ifname})
+                continue
+            fi
+        done
+      
+        # Debug
+        echo "int_ifname_pcislot: " $int_ifname_pcislot
+        echo "int_ifnames: " ${int_ifnames[@]}
+        echo "int_ifnames length: " {{ '${#int_ifnames[@]}' }}
+      }
+      
+      # get default gateway and int/ext netmask, return: var DEFGW, GWDEV
+      get_gw_and_netmask
+      
+      # hosts.json input only one nic interface, check ports on this nic
+      if [ ${host_interfaces_num} -eq 1 ]; then
+          echo "--INFO: input 1 host interface"
+          # check kickstart nic ports first, return: array int_ifnames
+          check_nic_ports
+    
+          # if 2 ports or over 2 ports in this nic, configure network bonding
+          if [ {{ '${#int_ifnames[@]}' }} -ge 2 ]; then
+              echo "--INFO: found 2 ports or more than 2 ports in this nic, configure network bonding"
+              DEVICES=$(echo ${int_ifnames[@]} | tr ' ' ',')
+              cat > /tmp/network.cfg <<EOF
+      network --hostname=${INT_NET_FQDN} --device=${INT_NET_MAC} --onboot=no
+      network --device=bond0 --hostname=${INT_NET_FQDN} --bondslaves=${DEVICES} --bondopts=mode=802.3ad,xmit_hash_policy=layer3+4,lacp_rate=1,miimon=100 --noipv6 --onboot=yes --bootproto=static --ip=${INT_NET_IP} --netmask=${INT_NET_MASK} --gateway=${DEFGW}
+      
+      EOF
+              echo "--INFO: final network configuration is:"
+              cat /tmp/network.cfg
+          # if less than 2 ports in this nic, only configure normal network
+          else
+              echo "--INFO: not found 2 ports or more than 2 ports in this nic, won't configure network bonding, continue configure nic"
+              cat > /tmp/network.cfg <<EOF
+      network --bootproto static --hostname=${INT_NET_FQDN} --device=${INT_NET_MAC} --ip=${INT_NET_IP} --netmask=${INT_NET_MASK} --gateway=${DEFGW}
+      EOF
+              echo "--INFO: final network configuration is:"
+              cat /tmp/network.cfg
+          fi
+      # hosts.json input only two nic interfaces, configure these nics
+      elif [ ${host_interfaces_num} -eq 2 ]; then
+          echo "--INFO: input 2 host interfaces, configure two nics"
+          cat > /tmp/network.cfg <<EOF
+      network --bootproto static --hostname=${INT_NET_FQDN} --device=${INT_NET_MAC} --ip=${INT_NET_IP} --netmask=${INT_NET_MASK}
+      network --bootproto static --device=${EXT_NET_MAC} --ip=${EXT_NET_IP} --netmask=${EXT_NET_MASK} --gateway=${DEFGW}
+      EOF
+          echo "--INFO: final network configuration is:"
+          cat /tmp/network.cfg
+      else
+          echo "--ERROR: not provide host interface, or provide more than 2 nics! Please check /data/grendel/etc/hosts.json."
+      fi
+    
+      %end
+
+    kickstart_diy: |
+      # generate runonce scripts
+      %post --log=/var/log/re/ks_post-gpu.log
+
+      if [ ! -d /opt/re/runonce/scripts ]; then
+        mkdir -p -m 700 /opt/re/runonce/scripts
+      fi
+
+      cat > /opt/re/runonce/scripts/20-diy.sh <<'EOF'
+      #!/bin/bash
+      echo "This is diy" > /tmp/diy.log
+      EOF
+    
+      chmod +x /opt/re/runonce/scripts/20-diy.sh
+    
+      %end

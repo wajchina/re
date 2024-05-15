@@ -1,0 +1,177 @@
+---
+
+# regin
+REGION: "example"
+
+# zone
+ZONE: "sge"
+
+# etc hosts local
+etc_hosts_local: |
+    # kvm
+    10.10.10.100 example-re-1.kvm
+    10.10.10.100 example-manager-1.kvm
+    10.10.10.100 example-container-1.kvm
+
+# grendel image
+image: "centos_default"
+
+# files path
+path_for_centos_iso_file: "/media/isos/CentOS-7-x86_64-Everything-2207-02.iso"
+path_for_ubuntu_iso_file: "/media/isos/ubuntu-22.04.4-live-server-amd64.iso"
+path_for_re_raw_file: "/media/configuration"
+
+# domain
+domain_private: "example.private"
+domain_public: "example.public"
+
+# Hashed root password used in kickstart template
+# eg: # python -c 'import crypt,getpass;pw=getpass.getpass();print(crypt.crypt(pw) if (pw==getpass.getpass("Confirm: ")) else exit())'
+root_password: "$6$DFNg7KzQwoSqUxXG$QXUnBOnoboFpV.aSmfqLI7.IauNAF.4hokxODE32XY2jbWo4EPGUKVH7sJcn/AOYfnyl.skhs0IyCxfpIoJa90"
+
+# proxy server port
+proxy_server_port: ''
+
+# proxy_no_list
+proxy_no_list: ''
+
+## dhcp_subnets
+dhcp_subnets: |
+  [dhcp.subnets]
+  "10.10.10.254" = "10.10.10.0/24"
+
+# ssh_authorized_keys
+ssh_authorized_keys:
+    - user: root
+      key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCePiZwuRB26KQoh9EM/A3HSAc1bJ7Qa45s9vuMgd9WDbb1Gyv5GAZq6X+bioZtekU6Oh1jZScozRhoXQEiHh5ardYDLC3uLONq3ipLYGB/jMontkWHArDx75k39vvgzsa0z+84N0ChNm9tlbI9mFEYDtaxAlakDGjW+bsTauJDXqajjjzcNl0eIvtBVL6XekQLt9dIaA461Ijch8v9Jmg4D1ccV7CqellcdVD8ERbHV43rCNWKevw3046qDg7Yiu2ChMJzwlo3DuSkEAfMOGvuyLG/q2HloVxvx3U9hOWP1XbJjVdoIBa707sp+cLSRlJoj4lBPdXLIW7TE2pRz1gT root@example-re-1.example.private"
+
+
+# nexus server and port
+nexus_server: "10.10.10.202"
+nexus_port: 8081
+local_mirror_server: "192.168.100.150"
+## Local mirror can build by https://github.com/wajchina/mirrors
+
+# extra_packages_url
+extra_packages_url: "http://10.10.10.202:8081/repository/re-raw/configuration"
+
+# sge_master_hostname
+sge_master_hostname: "example-manager-1.example.private"
+
+# ganglia
+gmetad_server_hostname: "{{ sge_master_hostname }}"
+ganglia_cluster_name: "cluster-{{ REGION }}"
+ganglia_grid_name: "grid-{{ REGION }}"
+ganglia_config_gmond:
+  data_sources:
+    name: "{{ ganglia_cluster_name }}"
+    port: 8649
+    servers:
+      - "{{ gmetad_server_hostname }}"
+  globals:
+    mute: 'no'
+    deaf: 'yes'
+    host_dmax: 432000
+  acl_allow:
+    - ip: 127.0.0.1
+      mask: 32
+    - ip: 10.0.0.0
+      mask: 8
+    - ip: 172.16.0.0
+      mask: 12
+    - ip: 192.168.0.0
+      mask: 16
+
+# sudoers
+sudoers:
+  - "%admins   ALL=(ALL)   NOPASSWD: ALL"
+
+# rc_local
+rc_local:
+   - "# Just a empty comment"
+
+# squid proxy
+squid_acls:
+  - name: allow_hosts
+    classifier: src
+    value: "10.10.10.0/24"
+squid_rules:
+  - acl: allow_hosts
+    decision: allow
+
+# docker_using_proxy
+docker_using_proxy: False
+
+docker_ce_repo: "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/centos/docker-ce.repo"
+
+# nagios_server
+nagios_server: "10.10.10.202,192.168.100.0/24"
+
+# nagios_alarm_token - nagios API token
+nagios_alarm_token: ""
+
+# nagios_alarm_email
+nagios_alarm_email: "admin@example.com"
+
+# rsyslog servers
+rsyslog_deploy_default_config: yes
+rsyslog_default_rules:
+  - { rule: '*.info;mail.none;authpriv.none;cron.none;local3.none;local4.none', logpath: '/var/log/messages' }
+  - { rule: 'authpriv.*', logpath: '/var/log/secure' }
+  - { rule: 'mail.*', logpath: '-/var/log/maillog' }
+  - { rule: 'cron.*', logpath: '/var/log/cron' }
+  - { rule: '*.emerg', logpath: ':omusrmsg:*' }
+  - { rule: 'uucp,news.crit', logpath: '/var/log/spooler' }
+  - { rule: 'local7.*', logpath: '/var/log/boot.log' }
+rsyslog_rsyslog_d_files:
+  001-forward2rsyslog:
+    content: |
+      # Send to head
+      local3.info;local4.info @example-manager-1
+
+# ntp_servers
+ntp_servers:
+    - "10.10.10.201"
+    - "192.168.100.123"
+
+# ntp_clients
+ntp_clients:
+  - "10.10.10.0/24"
+
+# resolv_search
+resolv_search:
+  - "{{ domain_private }}"
+  - "{{ domain_public }}"
+
+# resolv_nameservers
+resolv_nameservers:
+  - "10.10.10.201"
+  - "114.114.114.114"
+
+# autofs_maps
+autofs_maps:
+ - mountpoint: /share
+   options:
+     - "--timeout=1200"
+   directories:
+     - path: data1
+       options:
+         - rw
+         - timeo=6000
+         - lookupcache=positive
+         - vers=3
+       server: "example-compute-1:/export/data"
+ - name: direct-mounts
+   mountpoint: /-
+   options:
+     - "--timeout=1200"
+   directories:
+     - path: /home
+       options:
+         - rw
+         - timeo=6000
+         - lookupcache=positive
+         - vers=3
+       server: "example-manager-1:/export/data"
+ - mountpoint: /home
+   state: absent

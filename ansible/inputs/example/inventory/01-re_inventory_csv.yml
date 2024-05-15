@@ -1,0 +1,26 @@
+---
+
+plugin: re_inventory_csv
+
+# please change source to your hosts.csv path
+# cwd: re/ansible
+source: "inputs/example/hosts.csv"
+
+# add an attribute to each host based on a conditional
+compose: {}
+
+# build dynamic groups based on attribute
+groups:
+  compute: "'-compute-' in hostname"
+  login: "'-login-' in hostname"
+  gpu: "'-gpu-' in hostname"
+  re: "'-re-' in hostname"
+
+# build dynamic groups based on csv columns
+keyed_groups:
+  - key: "hostname.split('-')[0] | lower"
+    prefix: ""
+    separator: ""
+
+# add an attribute to each host if it's not in the csv
+defaults: {}

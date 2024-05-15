@@ -1,0 +1,2 @@
+## if this host is gmond proxy, uncomment it
+#is_gmond_proxy: True

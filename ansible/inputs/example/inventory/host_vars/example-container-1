@@ -1,0 +1,4 @@
+# nagios
+nagios_check_dir_usage_path:
+  - /
+  - /mnt/nvme

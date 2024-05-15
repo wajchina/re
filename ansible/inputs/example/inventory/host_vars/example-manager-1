@@ -1,0 +1,48 @@
+## if this host is gmond proxy, uncomment it
+#is_gmond_proxy: True
+
+# resolv.conf
+resolv_nameservers:
+  - 10.10.10.201
+  - 192.168.100.53
+
+# dns server settings
+dns_zones:
+  - name: private
+    type: forward
+    dns_zone_forwarders:
+      - 10.10.10.53
+  - name: xx1.example.private
+    type: forward
+    dns_zone_forwarders:
+      - 10.10.11.1
+
+dns_allow_recursion:
+  - 10.10.10.0/24
+  - 127.0.0.1
+
+dns_options_allow_query:
+  - 10.10.10.0/24
+  - 127.0.0.1
+
+# nagios
+nagios_check_dir_usage_path:
+  - /
+  - /export
+
+# rsync server
+rsync_hosts_allow:
+  - 192.168.100.1
+rsync_shares:
+  - name: 2fa
+    path: /share/2fa
+    uid: root
+    gid: root
+    read_only: no
+    list: yes
+    comment: Just for synchronizing 2fa
+    auth_users:
+      - rsync2fa
+rsync_users:
+  - name: rsync2fa
+    password: "Todo_Generate_From_Random"

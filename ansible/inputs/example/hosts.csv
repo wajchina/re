@@ -1,0 +1,6 @@
+hostname,ip,mac,ip2,mac2,ib_ip,ib_netmask,boot,ipmi_ip,apps,tags
+example-kvm-1,10.10.10.100,00:00:00:00:00:00,192.168.100.100,00:00:00:00:00:00,,,local,192.168.1.100,kvm,nfs_server ntp_server
+example-re-1,10.10.10.200,00:00:00:00:00:00,192.168.100.200,00:00:00:00:00:00,,,local,,,
+example-manager-1,10.10.10.201,00:00:00:00:00:01,192.168.100.201,00:00:00:00:01:01,,,local,192.168.1.201,sge_qmaster,dns_server ntp_server nfs_server
+example-container-1,10.10.10.202,00:00:00:00:00:02,192.168.100.202,00:00:00:00:01:02,,,local,192.168.1.202,docker,mirror_server proxy_server nagios_server
+example-compute-1,10.10.10.203,00:00:00:00:00:03,,,,,local,192.168.1.203,sge_execution,nfs_server
