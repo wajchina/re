@@ -1,0 +1,23 @@
+---
+
+- name: Install fail2ban
+  ansible.builtin.yum:
+    name:
+      - fail2ban
+    state: present
+  tags: fail2ban
+
+- name: Start fail2ban automatically
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: yes
+  tags: fail2ban
+
+- name: Generate jail.local
+  ansible.builtin.template:
+    src: 'etc/fail2ban/jail.local.j2'
+    dest: '/etc/fail2ban/jail.local'
+    mode: 0644
+  notify: Restart fail2ban
+  tags: fail2ban

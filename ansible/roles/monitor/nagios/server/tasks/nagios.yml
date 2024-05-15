@@ -1,0 +1,150 @@
+---
+
+- name: nagios-server | Pull docker image jasonrivers/nagios
+  community.docker.docker_image:
+    name: "{{ nagios_image }}:{{ nagios_version }}"
+    source: pull
+    state: present
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tags:
+    - nagios-server
+
+- name: nagios-server | Create /opt/nagios
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "999"
+    group: "1000"
+    mode: "0755"
+  with_items:
+    - /opt/nagios
+    - /opt/nagios/nagios
+    - /opt/nagios/nagios/etc
+    - /opt/nagios/nagios/var
+    - /opt/nagios/nagiosgraph
+    - /opt/nagios/nagiosgraph/var
+    - /opt/nagios/nagiosgraph/var/log
+  tags:
+    - nagios-server
+
+- name: nagios-server | Create nagios container
+  community.docker.docker_container:
+    name: "{{ nagios_container }}"
+    image: "{{ nagios_image }}:{{ nagios_version }}"
+    state: started
+    recreate: true
+    restart: true
+    restart_policy: "always"
+    published_ports:
+      - "{{ nagios_port }}:80"
+    volumes:
+      - /etc/hosts:/etc/hosts
+      - /etc/localtime:/etc/localtime
+      - /opt/nagios/nagios/etc:/opt/nagios/etc
+      - /opt/nagios/nagios/var:/opt/nagios/var
+      - /opt/nagios/Custom-Nagios-Plugins:/opt/Custom-Nagios-Plugins
+      - /opt/nagios/nagiosgraph/var:/opt/nagiosgraph/var
+  tags:
+    - nagios-server
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+
+- name: nagios-server | Wait for /opt/nagios/nagios/etc/htpasswd.users  generated
+  ansible.builtin.wait_for:
+    path: /opt/nagios/nagios/etc/htpasswd.users
+  tags:
+    - nagios-server
+
+- name: nagios-server | Generate the nagios monitoring templates
+  ansible.builtin.template:
+    src: etc/conf.d/{{ item + ".j2" }}
+    dest: /opt/nagios/nagios/etc/conf.d/{{ item }}
+    mode: 0644
+  with_items:
+    - sge_qmaster.cfg
+    - sge_submit.cfg
+    - sge_execution.cfg
+    - kvm.cfg
+    - docker.cfg
+    - escalations.cfg
+  become: true
+  tags:
+    - nagios-server
+
+- name: nagios-server | Generate common nagios config files
+  ansible.builtin.template:
+    src: etc/objects/{{ item + ".j2" }}
+    dest: /opt/nagios/nagios/etc/objects/{{ item }}
+    mode: 0644
+  with_items:
+    - contacts.cfg
+    - extra_nagios_commands.cfg
+    - localhost.cfg
+    - templates.cfg
+  tags:
+    - nagios-server
+    - nagios-config
+
+- name: nagios-server | add authorized_for_all_hosts in cgi.cfg
+  ansible.builtin.replace:
+    path: /opt/nagios/nagios/etc/cgi.cfg
+    regexp: '^authorized_for_all_hosts=nagiosadmin$'
+    replace: 'authorized_for_all_hosts=nagiosadmin,nagiosguest'
+  tags:
+    - nagios-server
+    - nagios-config
+
+- name: nagios-server | add authorized_for_all_services in cgi.cfg
+  ansible.builtin.replace:
+    path: /opt/nagios/nagios/etc/cgi.cfg
+    regexp: '^authorized_for_all_services=nagiosadmin$'
+    replace: 'authorized_for_all_services=nagiosadmin,nagiosguest'
+  tags:
+    - nagios-server
+    - nagios-config
+
+- name: nagios-server | add authorized_for_read_only in cgi.cfg
+  ansible.builtin.lineinfile:
+    destfile: /opt/nagios/nagios/etc/cgi.cfg
+    insertafter: '#authorized_for_read_only=user1,user2'
+    line: 'authorized_for_read_only=nagiosguest'
+  tags:
+    - nagios-server
+    - nagios-config
+
+- name: nagios-server | add cfg_dir in nagios.cfg
+  ansible.builtin.lineinfile:
+    destfile: /opt/nagios/nagios/etc/nagios.cfg
+    insertafter: 'cfg_file=/opt/nagios/etc/objects/localhost.cfg'
+    line: 'cfg_file=/opt/nagios/etc/objects/extra_nagios_commands.cfg'
+  tags:
+    - nagios-server
+    - nagios-config
+
+- name: nagios-server | check nagios config before reload service
+  ansible.builtin.shell: docker exec {{ nagios_container }} nagios -v /opt/nagios/etc/nagios.cfg
+  register: nagios_config_check
+  failed_when: nagios_config_check.rc != 0
+  tags:
+    - nagios-server
+    - nagios-config
+
+- name: nagios-server | Restart nagios container
+  community.docker.docker_container:
+    name: "{{ nagios_container }}"
+    restart: true
+  tags:
+    - nagios-server
+    - nagios-config
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+
+- name: nagios-server | Open firewall for nagios service
+  ansible.builtin.firewalld:
+    port: "{{ nagios_port }}/tcp"
+    permanent: true
+    state: enabled
+  tags:
+    - nagios-server
+    - nagios-config

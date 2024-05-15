@@ -1,0 +1,111 @@
+---
+
+- name: install | Add Docker repo using proxy
+  ansible.builtin.get_url:
+    url: "{{ docker_ce_repo }}"
+    use_proxy: yes
+    dest: /etc/yum.repos.d/docker-ce.repo
+    validate_certs: false
+    force: yes
+  environment: "{{ proxy_env }}"
+  when: docker_using_proxy is defined and docker_using_proxy|bool == True
+  tags:
+    - install
+
+- name: install | Add Docker repo without proxy
+  ansible.builtin.get_url:
+    url: "{{ docker_ce_repo }}"
+    use_proxy: no
+    force: yes
+    dest: /etc/yum.repos.d/docker-ce.repo
+  when: docker_using_proxy is not defined or docker_using_proxy|bool == False
+  tags:
+    - install
+
+- name: install | Enable 0 Docker CE repo
+  community.general.ini_file:
+    dest: /etc/yum.repos.d/docker-ce.repo
+    section: 'docker-ce-stable'
+    option: enabled
+    value: "0"
+  tags:
+    - install
+
+- name: install | Enable 0 Docker Test repo
+  community.general.ini_file:
+    dest: /etc/yum.repos.d/docker-ce.repo
+    section: 'docker-ce-test'
+    option: enabled
+    value: "0"
+  tags:
+    - install
+
+- name: install | Install Docker using proxy
+  ansible.builtin.package:
+    name: docker-ce
+    state: latest
+    enablerepo: "docker-ce-stable"
+  environment: "{{ proxy_env }}"
+  when: docker_using_proxy is defined and docker_using_proxy|bool == True
+  tags:
+    - install
+
+- name: install | Install Docker without proxy
+  ansible.builtin.package:
+    name: docker-ce
+    state: latest
+    enablerepo: "docker-ce-stable"
+  when: docker_using_proxy is not defined or docker_using_proxy|bool == False
+  tags:
+    - install
+
+- name: install | Create docker daemon destination directory if it does not exist
+  ansible.builtin.file:
+    path: "/etc/docker"
+    state: directory
+  tags:
+    - install
+
+- name: install | Configure docker daemon.json
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: "/etc/docker/daemon.json"
+    mode: 0644
+  tags:
+    - install
+
+- name: install | Reread system configs
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  tags:
+    - install
+
+- name: install | Start services
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: yes
+  tags:
+    - install
+
+- name: install | Create docker proxy directory if it does not exist
+  ansible.builtin.file:
+    path: "/etc/systemd/system/docker.service.d"
+    state: directory
+    mode: '0755'
+  notify:
+    - Restart docker
+  tags:
+    - install
+
+- name: install | Set docker proxy
+  ansible.builtin.template:
+    src: proxy.conf.j2
+    dest: "/etc/systemd/system/docker.service.d/proxy.conf"
+    mode: 0644
+  when: docker_using_proxy is not defined or docker_using_proxy|bool == False
+  notify:
+    - systemd daemon reload
+    - Restart docker
+  tags:
+    - install

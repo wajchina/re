@@ -1,0 +1,13 @@
+{{ ansible_managed | comment }}
+
+# Logrotate history
+/var/log/history/hist.log {
+    compress
+    rotate 4
+    size 50M
+    missingok
+    create 0664 root root
+    nodelaycompress
+    weekly
+    dateext
+}

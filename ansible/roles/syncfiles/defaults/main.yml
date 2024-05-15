@@ -1,0 +1,24 @@
+---
+
+## Synchronize files module.
+# eg:
+# synchronize_list:
+#   - src: '/etc/issue'
+#     dest: '/var/backups/'
+#     delete: yes
+#   - src: '/etc/cron.d'
+#     dest: '/var/backups/'
+#     recursive: yes
+#     delete: yes
+
+## "Global" files/directories to synchronize
+synchronize_list:
+  - src: '/etc/hosts'
+    dest: '/etc/hosts'
+    delete: yes
+
+## "Host group" files/directories to synchronize
+synchronize_group_list: []
+
+## "Host" files/directories to synchronize
+synchronize_host_list: []

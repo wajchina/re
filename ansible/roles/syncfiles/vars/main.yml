@@ -1,0 +1,4 @@
+---
+
+syncfiles_requirements:
+  - rsync

@@ -1,0 +1,37 @@
+---
+
+- name: Playbooks | Run kvm provisioning
+  hosts: kvm
+  gather_facts: False
+  pre_tasks:
+    - name: Pre-Task get ansible_distribution variable
+      setup:
+        filter: '{{ item }}'
+        gather_timeout: 60
+      with_items:
+          - 'ansible_distribution*'
+      async: 60
+      poll: 15
+      when: not ansible_check_mode
+      ignore_errors: '{{ ansible_check_mode }}'
+    - name: Run setup in check mode
+      setup:
+        filter: '{{ item }}'
+        gather_timeout: 60
+      with_items:
+        - 'ansible_distribution*'
+      when: ansible_check_mode
+  roles:
+    - kvm
+  tags:
+    - kvm
+
+- name: Playbooks | Run grendel provisioning
+  hosts: re
+  connection: local
+  roles:
+    - docker
+    - grendel/image
+    - grendel/run
+  tags:
+    - grendel

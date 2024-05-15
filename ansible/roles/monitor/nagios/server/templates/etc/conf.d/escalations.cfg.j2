@@ -1,0 +1,103 @@
+{{ ansible_managed | comment }}
+
+{% if groups['sge_qmaster'] is defined %}
+{% if groups['sge_qmaster'] != [] %}
+# sge_qmaster
+define serviceescalation{
+    hostgroup_name          sge_qmaster
+    service_description     PING,SSH,CPU,Memory,Swap,Dir_usage,Chronyd,Audit,Ganglia-gmetad,Ganglia-gmond,NIS-ypserv,NIS-ypbind,NIS-yppasswdd,Autofs,SGE_qmaster,Named,Httpd,Rpcbind
+    first_notification      0
+    last_notification       0
+    notification_interval   120
+    contact_groups          re-alarm-group
+}
+{% endif %}
+{% endif %}
+
+{% if groups['sge_submit'] is defined %}
+{% if groups['sge_submit'] != [] %}
+# sge_submit
+define serviceescalation{
+    hostgroup_name          sge_submit
+    service_description     PING,SSH,CPU,Memory,Swap,Dir_usage,Chronyd,Audit,Ganglia-gmond,NIS-ypbind,Autofs
+    first_notification      0
+    last_notification       1
+    notification_interval   0
+    contact_groups          re-alarm-group
+}
+define serviceescalation{
+    hostgroup_name          sge_submit
+    service_description     PING,SSH,CPU,Memory,Swap,Dir_usage,Chronyd,Audit,Ganglia-gmond,NIS-ypbind,Autofs
+    first_notification      2
+    last_notification       0
+    notification_interval   0
+    contact_groups          nulls
+}
+{% endif %}
+{% endif %}
+
+{% if groups['sge_execution'] is defined %}
+{% if groups['sge_execution'] != [] %}
+# sge_execution
+define serviceescalation{
+    hostgroup_name          sge_execution
+    service_description     PING,SSH,Dir_usage,Chronyd,Audit,Ganglia-gmond,NIS-ypbind,Autofs,SGE_execd
+    first_notification      0
+    last_notification       1
+    notification_interval   0
+    contact_groups          re-alarm-group
+}
+define serviceescalation{
+    hostgroup_name          sge_execution
+    service_description     PING,SSH,Dir_usage,Chronyd,Audit,Ganglia-gmond,NIS-ypbind,Autofs,SGE_execd
+    first_notification      2
+    last_notification       0
+    notification_interval   0
+    contact_groups          nulls
+}
+{% endif %}
+{% endif %}
+
+{% if groups['kvm'] is defined %}
+{% if groups['kvm'] != [] %}
+# kvm
+define serviceescalation{
+    hostgroup_name          kvm
+    service_description     PING,SSH,CPU,Memory,Swap,Dir_usage,Chronyd,Audit,Ganglia-gmond,Autofs,Libvirtd,RAID
+    first_notification      0
+    last_notification       1
+    notification_interval   0
+    contact_groups          re-alarm-group
+}
+define serviceescalation{
+    hostgroup_name          kvm
+    service_description     PING,SSH,CPU,Memory,Swap,Dir_usage,Chronyd,Audit,Ganglia-gmond,Autofs,Libvirtd,RAID
+    first_notification      2
+    last_notification       0
+    notification_interval   0
+    contact_groups          nulls
+}
+{% endif %}
+{% endif %}
+
+{% if groups['docker'] is defined %}
+{% if groups['docker'] != [] %}
+# docker
+define serviceescalation{
+    hostgroup_name          docker
+    service_description     PING,SSH,CPU,Memory,Swap,Dir_usage,Chronyd,Audit,Ganglia-gmond,Docker
+    first_notification      0
+    last_notification       1
+    notification_interval   0
+    contact_groups          re-alarm-group
+}
+define serviceescalation{
+    hostgroup_name          docker
+    service_description     PING,SSH,CPU,Memory,Swap,Dir_usage,Chronyd,Audit,Ganglia-gmond,Docker
+    first_notification      2
+    last_notification       0
+    notification_interval   0
+    contact_groups          nulls
+}
+{% endif %}
+{% endif %}

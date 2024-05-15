@@ -1,0 +1,45 @@
+---
+
+- name: Install slurm packages
+  ansible.builtin.yum:
+    name:
+      - slurm
+      - slurm-perlapi
+      - slurm-slurmctld
+      - slurm-slurmd
+      - slurm-slurmdbd
+    enablerepo: powertools
+  tags: slurm
+
+- name: Copy script files
+  ansible.builtin.copy:
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
+    mode: '0700'
+    backup: yes
+  with_items:
+    - { src: 'instant-slurm.sh', dest: '/tmp/instant-slurm.sh' }
+  tags: slurm
+
+- name: Configure slurm single instance
+  ansible.builtin.command: >
+    /tmp/instant-slurm.sh
+  tags: slurm
+
+- name: Start munge service
+  ansible.builtin.service:
+    name: munge
+    state: started
+    enabled: yes
+
+- name: Start slurmctld service
+  ansible.builtin.service:
+    name: slurmctld
+    state: started
+    enabled: yes
+
+- name: Start slurmd service
+  ansible.builtin.service:
+    name: slurmd
+    state: started
+    enabled: yes

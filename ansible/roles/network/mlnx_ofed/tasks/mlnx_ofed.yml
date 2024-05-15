@@ -1,0 +1,57 @@
+---
+
+- name: mlnx_ofed | Initialise ib node status
+  ansible.builtin.set_fact:
+    ib_node_status: false
+  tags: mlnx_ofed
+
+- name: mlnx_ofed | Install lspci tool
+  ansible.builtin.package:
+    name: pciutils
+    state: present
+  tags: mlnx_ofed
+
+- name: mlnx_ofed | Check Mellanox card status
+  ansible.builtin.shell: >
+    set -o pipefail && \
+    lspci -v | grep Mellanox
+  changed_when: false
+  register: lspci_status
+  failed_when: false
+  tags: mlnx_ofed
+
+- name: mlnx_ofed | Update ib node status
+  ansible.builtin.set_fact:
+    ib_node_status: true
+  when: "'Mellanox' in lspci_status.stdout"
+  tags: mlnx_ofed
+
+- name: mlnx_ofed | Install MLNX OFED
+  block:
+
+    - name: mlnx_ofed | Add MLNX_OFED repo
+      ansible.builtin.yum_repository:
+        name: mlnx_ofed
+        description: MLNX_OFED Repository
+        file: mlnx_ofed
+        baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/mlnx_ofed/{{ mlnx_ofed_version }}/rhel7.9/$basearch
+        enabled: no
+        gpgcheck: no
+
+    - name: mlnx_ofed | Install packages for MLNX OFED (This task may take 10 mins)
+      ansible.builtin.yum:
+        name: "{{ ofed_packages }}"
+        state: present
+        enablerepo: mlnx_ofed
+
+    - name: mlnx_ofed | Enable openibd service
+      ansible.builtin.service:
+        name: openibd
+        enabled: true
+
+    - name: mlnx_ofed | Reboot
+      ansible.builtin.reboot:
+
+  when: ib_node_status
+  tags: mlnx_ofed
+

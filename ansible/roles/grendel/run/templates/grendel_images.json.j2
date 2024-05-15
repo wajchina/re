@@ -1,0 +1,27 @@
+[{
+    "name": "centos_default",
+    "kernel": "/opt/grendel/os/centos/images/pxeboot/vmlinuz",
+    "initrd": [
+        "/opt/grendel/os/centos/images/pxeboot/initrd.img"
+    ],
+    "provision_template": "centos_default.ks.tmpl",
+    "cmdline": "ks={% raw %}{{ $.kickstart }} {% endraw %} network ksdevice=bootif ks.device=bootif console=tty0 console=ttyS0,115200n8 inst.sshd"
+},
+{
+    "name": "centos_sge_execution",
+    "kernel": "/opt/grendel/os/centos/images/pxeboot/vmlinuz",
+    "initrd": [
+        "/opt/grendel/os/centos/images/pxeboot/initrd.img"
+    ],
+    "provision_template": "centos_sge_execution.ks.tmpl",
+    "cmdline": "ks={% raw %}{{ $.kickstart }} {% endraw %} network ksdevice=bootif ks.device=bootif console=tty0 console=ttyS0,115200n8 inst.sshd"
+},
+{
+    "name": "ubuntu",
+    "kernel": "/opt/grendel/os/ubuntu/casper/vmlinuz",
+    "initrd": [
+        "/opt/grendel/os/ubuntu/casper/initrd"
+    ],
+    "user_data": "cloud-init.tmpl",
+    "cmdline": "ip=dhcp url={% raw %}{{ $.repo }}{% endraw %}/iso/ubuntu.iso autoinstall ds=nocloud-net;s={% raw %}{{ $.cloudinit }}{% endraw %} ---"
+}]

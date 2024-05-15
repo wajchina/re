@@ -1,0 +1,58 @@
+---
+
+- name: Import assert.yml
+  ansible.builtin.import_tasks: assert.yml
+  run_once: yes
+  delegate_to: localhost
+  tags: nfs
+
+- name: Ensure NFS utilities are installed.
+  ansible.builtin.package: name=nfs-utils state=present
+  tags: nfs
+
+- name: Ensure rpcbind is running as configured.
+  ansible.builtin.service:
+    name: rpcbind
+    state: started
+    enabled: true
+  tags: nfs
+
+- name: Ensure directories to export exist
+  ansible.builtin.file:
+    path: "{{ item.strip().split()[0] }}"
+    state: directory
+  with_items: "{{ nfs_exports }}"
+  tags: nfs
+
+- name: Copy exports file.
+  ansible.builtin.template:
+    src: exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: 0644
+  notify: Reload nfs
+  tags: nfs
+
+- name: Ensure nfs is running.
+  ansible.builtin.service: "name=nfs-server state=started enabled=yes"
+  when: nfs_exports|length
+  tags: nfs
+
+# - name: Open ports in firewalld
+#   block:
+#     - name: Allow NFS port 111 in the firewall
+#       ansible.posix.firewalld:
+#         port: 111/tcp
+#         permanent: true
+#         immediate: true
+#         state: enabled
+#         offline: true
+#     - name: Allow NFS port 2049 in the firewall
+#       ansible.posix.firewalld:
+#         port: 2049/tcp
+#         permanent: true
+#         immediate: true
+#         state: enabled
+#         offline: true
+#   tags: nfs

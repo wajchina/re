@@ -1,0 +1,6 @@
+---
+
+# Kickstart file path
+kvm_vm_ks_path: "/tmp/"
+# Disk file path
+kvm_vm_disk_path: "/tmp/"

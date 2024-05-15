@@ -1,0 +1,44 @@
+---
+
+kickstart_runonce: |
+
+  # refer: https://access.redhat.com/solutions/1588063
+  %post --log=/var/log/re/ks_post-runonce.log
+  touch /tmp/runonce
+  mkdir -pv /opt/re/runonce/scripts
+
+  cat > /opt/re/runonce/main.sh <<'EOF'
+  #!/bin/bash
+
+  if [ -e /tmp/runonce ]
+  then
+     rm /tmp/runonce
+     exec > /opt/re/runonce/runonce.log 2>&1
+     cd /opt/re/runonce/scripts
+     for script_item in $(ls /opt/re/runonce/scripts | sort )
+     do
+       ./$script_item
+     done
+  fi
+
+  exit
+  EOF
+
+  chmod +x -v /opt/re/runonce/main.sh
+
+  cat > /etc/systemd/system/runonce.service <<EOF
+  [Unit]
+  Description=Run once
+  Requires=network-online.target
+  After=network-online.target
+
+  [Service]
+  ExecStart=/opt/re/runonce/main.sh
+
+  [Install]
+  WantedBy=multi-user.target
+  EOF
+
+  chmod 664 /etc/systemd/system/runonce.service
+  systemctl enable runonce
+  %end

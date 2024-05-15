@@ -1,0 +1,25 @@
+---
+
+kickstart_ssh: |
+
+  %post --log=/var/log/re/ks_post-ssh.log
+
+  if [ ! -d /root/.ssh ]; then mkdir -pv /root/.ssh; fi
+  chmod -v 700 /root/.ssh
+  cat > /root/.ssh/authorized_keys <<EOF
+  {% for ssh_authorized_key in ssh_authorized_keys %}
+  {% if ssh_authorized_key["user"] == "root" %}
+  {{ ssh_authorized_key["key"] }}
+  {% endif %}
+  {% endfor %}
+  EOF
+  chmod -v 600 /root/.ssh/authorized_keys
+
+  cat > /etc/ssh/ssh_config <<EOF
+  Host *
+          ForwardX11              yes
+          ForwardAgent            yes
+          StrictHostKeyChecking   no
+  EOF
+
+  %end

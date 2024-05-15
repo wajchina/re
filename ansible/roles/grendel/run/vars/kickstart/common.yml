@@ -1,0 +1,12 @@
+---
+
+kickstart_common: |
+
+  %post --log=/var/log/re/ks_post-common.log
+
+  # print kickstarted timestamp to /etc/motd
+  cat >> /etc/motd << EOF
+  Kickstarted `date +"%Y-%m-%d %H:%M:%S"`
+  EOF
+
+  %end

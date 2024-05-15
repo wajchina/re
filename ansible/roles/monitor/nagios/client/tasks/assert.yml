@@ -1,0 +1,11 @@
+---
+
+- name: assert | Test if extra_packages_url is set correctly
+  ansible.builtin.assert:
+    that:
+      - extra_packages_url is defined
+      - extra_packages_url is string
+      - extra_packages_url is not none
+    quiet: yes
+  tags:
+    - assert

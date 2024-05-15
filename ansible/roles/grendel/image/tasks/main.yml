@@ -1,0 +1,16 @@
+---
+
+- name: Set proxy environment
+  ansible.builtin.import_tasks: proxy.yml
+
+- name: Prepare requirement
+  ansible.builtin.import_tasks: requirement.yml
+
+- name: Build grendel docker image
+  ansible.builtin.import_tasks: build.yml
+
+- name: Configure firewall
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Configure ssh
+  ansible.builtin.import_tasks: ssh.yml

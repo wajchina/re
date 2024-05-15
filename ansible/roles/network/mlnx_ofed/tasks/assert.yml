@@ -1,0 +1,41 @@
+---
+
+- name: assert | Test if nexus_server is set correctly
+  ansible.builtin.assert:
+    that:
+      - nexus_server is defined
+      - nexus_server is string
+      - nexus_server is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if nexus_port is set correctly
+  ansible.builtin.assert:
+    that:
+      - nexus_port is defined
+      - nexus_port is number
+      - nexus_port > 0
+      - nexus_port < 65536
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if mlnx_ofed_version is set correctly
+  ansible.builtin.assert:
+    that:
+      - mlnx_ofed_version is defined
+      - mlnx_ofed_version is string
+      - mlnx_ofed_version is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ofed_packages is set correctly
+  ansible.builtin.assert:
+    that:
+      - ofed_packages is defined
+      - ofed_packages is iterable
+    quiet: yes
+  tags:
+    - assert

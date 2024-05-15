@@ -1,0 +1,62 @@
+---
+
+- name: sge_qmaster | Install sge master packages only
+  ansible.builtin.yum:
+    name: "{{ sge_qmaster_pkgs }}"
+    state: present
+  vars:
+    sge_qmaster_pkgs:
+      - "{{ extra_packages_url }}/rpm/sge-8.1.9-1.x86_64.rpm"
+      - pdsh
+  tags: sge_qmaster
+
+- name: sge_qmaster | Copy installation config file to destination
+  ansible.builtin.template:
+    src: installation.conf.j2
+    dest: "{{ sge_root }}/installation.conf"
+  tags: sge_qmaster
+
+- name: sge_qmaster | Configure sge master only
+  ansible.builtin.command: ./inst_sge -m -auto installation.conf
+  args:
+    chdir: "{{ sge_root }}"
+    creates: /etc/init.d/sgemaster*
+  tags: sge_qmaster
+
+- name: sge_qmaster | Wait for 60s before starting sge service
+  ansible.builtin.wait_for:
+    timeout: 60
+
+- name: sge_qmaster | Enable sge master service
+  ansible.builtin.service:
+    name: "sgemaster.{{ sge_cluster_name }}"
+    enabled: yes
+    state: started
+  tags: sge_qmaster
+
+- name: sge_qmaster | Copy sge environment settings for sh
+  ansible.builtin.copy:
+    src: "{{ sge_root }}/{{ cell_name }}/common/settings.sh"
+    remote_src: yes
+    dest: /etc/profile.d/sge.sh
+    owner: root
+    group: root
+  tags: sge_qmaster
+
+- name: sge_qmaster | Copy sge environment settings for csh
+  ansible.builtin.copy:
+    src: "{{ sge_root }}/{{ cell_name }}/common/settings.csh"
+    remote_src: yes
+    dest: /etc/profile.d/sge.csh
+    owner: root
+    group: root
+  tags: sge_qmaster
+
+- name: sge_qmaster | Add submit and compute nodes to head node.
+  ansible.builtin.shell: "{{ sge_root }}/bin/lx-amd64/qconf -ah {{ item }}"
+  with_items:
+    - "{{ groups['sge_submit'] }}"
+    - "{{ groups['sge_execution'] }}"
+  register: qconf_ah_result
+  changed_when: "'added to administrative host list' in qconf_ah_result.stdout"
+  tags: sge_qmaster

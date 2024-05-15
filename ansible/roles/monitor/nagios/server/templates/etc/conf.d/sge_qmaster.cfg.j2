@@ -1,0 +1,167 @@
+{{ ansible_managed | comment }}
+
+{% if groups['sge_qmaster'] is defined %}
+{% if groups['sge_qmaster'] != [] %}
+
+# sge_qmaster node
+define hostgroup {
+    hostgroup_name          sge_qmaster
+    alias                   sge_qmaster
+}
+
+{% for host in groups['sge_qmaster'] %}
+define host {
+    use                     linux-server
+    host_name               {{ host }}
+    hostgroups              sge_qmaster
+}
+{% endfor %}
+
+# service for sge_qmaster
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     PING
+    check_command           check-host-alive
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     SSH
+    check_command           check_ssh
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     CPU
+    check_command           check_nrpe!check_load
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Memory
+    check_command           check_nrpe!check_mem
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Swap
+    check_command           check_nrpe!check_swap
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Dir_usage
+    check_command           check_nrpe!check_dir_usage
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Chronyd
+    check_command           check_nrpe!check_service_chronyd
+    notifications_enabled   1
+}
+
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Audit
+    check_command           check_nrpe!check_service_auditd
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Ganglia-gmetad
+    check_command           check_nrpe!check_service_gmetad
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Ganglia-gmond
+    check_command           check_nrpe!check_service_gmond
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service
+    hostgroup_name          sge_qmaster
+    service_description     NIS-ypserv
+    check_command           check_nrpe!check_service_ypserv
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service
+    hostgroup_name          sge_qmaster
+    service_description     NIS-ypbind
+    check_command           check_nrpe!check_service_ypbind
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service
+    hostgroup_name          sge_qmaster
+    service_description     NIS-yppasswdd
+    check_command           check_nrpe!check_service_yppasswdd
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Autofs
+    check_command           check_nrpe!check_service_autofs
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     SGE_qmaster
+    check_command           check_nrpe!check_service_sge_qmaster
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Named
+    check_command           check_nrpe!check_service_named
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Httpd
+    check_command           check_http!-w 5 -t 10
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          sge_qmaster
+    service_description     Rpcbind
+    check_command           check_nrpe!check_service_rpcbind
+    notifications_enabled   1
+}
+
+{% endif %}
+{% endif %}

@@ -1,0 +1,13 @@
+---
+
+- name: Import assert.yml
+  ansible.builtin.import_tasks: assert.yml
+  run_once: yes
+  delegate_to: localhost
+  tags:
+    - mirror
+
+- name: Build mirror server by sonatype/nexus3
+  ansible.builtin.import_tasks: nexus.yml
+  tags:
+    - mirror

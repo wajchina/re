@@ -1,0 +1,91 @@
+---
+
+- name: assert | Test if extra_packages_url is set correctly
+  ansible.builtin.assert:
+    that:
+      - extra_packages_url is defined
+      - extra_packages_url is string
+      - extra_packages_url is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ganglia_config_user is set correctly
+  ansible.builtin.assert:
+    that:
+      - ganglia_config_user is defined
+      - ganglia_config_user is string
+      - ganglia_config_user is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ganglia_config_owner is set correctly
+  ansible.builtin.assert:
+    that:
+      - ganglia_config_owner is defined
+      - ganglia_config_owner is string
+      - ganglia_config_owner is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ganglia_config_latlong is set correctly
+  ansible.builtin.assert:
+    that:
+      - ganglia_config_latlong is defined
+      - ganglia_config_latlong is string
+      - ganglia_config_latlong is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ganglia_config_url is set correctly
+  ansible.builtin.assert:
+    that:
+      - ganglia_config_url is defined
+      - ganglia_config_url is string
+      - ganglia_config_url is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ganglia_cluster_name is set correctly
+  ansible.builtin.assert:
+    that:
+      - ganglia_cluster_name is defined
+      - ganglia_cluster_name is string
+      - ganglia_cluster_name is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ganglia_grid_name is set correctly
+  ansible.builtin.assert:
+    that:
+      - ganglia_grid_name is defined
+      - ganglia_grid_name is string
+      - ganglia_grid_name is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ganglia_config_gmetad is set correctly
+  ansible.builtin.assert:
+    that:
+      - ganglia_config_gmetad is defined
+      - ganglia_config_gmetad is mapping
+      - ganglia_config_gmetad is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if ganglia_config_gmond is set correctly
+  ansible.builtin.assert:
+    that:
+      - ganglia_config_gmond is defined
+      - ganglia_config_gmond is mapping
+      - ganglia_config_gmond is not none
+    quiet: yes
+  tags:
+    - assert

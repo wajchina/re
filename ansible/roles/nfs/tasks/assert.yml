@@ -1,0 +1,10 @@
+---
+
+- name: assert | Test if nfs_exports is set correctly
+  ansible.builtin.assert:
+    that:
+      - nfs_exports is defined
+      - nfs_exports is iterable
+    quiet: yes
+  tags:
+    - assert

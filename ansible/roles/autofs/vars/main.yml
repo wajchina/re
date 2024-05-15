@@ -1,0 +1,9 @@
+---
+
+autofs_requirements:
+  - nfs-utils
+
+autofs_packages:
+  - autofs
+
+autofs_service: autofs

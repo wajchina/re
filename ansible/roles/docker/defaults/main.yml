@@ -1,0 +1,14 @@
+---
+
+docker_bip: "192.168.255.1/24"
+docker_ce_repo: "http://mirrors.bfsu.edu.cn/docker-ce/linux/centos/docker-ce.repo"
+
+docker_required_packages:
+  - git
+  - gcc
+  - gcc-c++
+  - net-tools
+  - python3-pip
+  - yum-plugin-versionlock
+  - vim
+  - bash-completion

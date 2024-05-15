@@ -1,0 +1,143 @@
+---
+
+- name: nexus | Pull docker image sonatype/nexus
+  community.docker.docker_image:
+    name: "{{ nexus_image }}:{{ nexus_version }}"
+    source: pull
+    state: present
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tags: nexus
+
+- name: nexus | Create /opt/nexus
+  ansible.builtin.file:
+    path: "/opt/nexus"
+    state: directory
+    owner: "200"
+    group: "200"
+    mode: "0750"
+  tags: nexus
+
+- name: nexus | Initialize variables
+  ansible.builtin.set_fact:
+    nexus_container_status: false
+  tags: nexus
+
+- name: nexus | Check nexus container status on the machine
+  community.docker.docker_container_info:
+    name: "{{ nexus_container }}"
+  register: nexus_result
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+  tags: nexus
+
+- name: nexus | Update nexus container status
+  ansible.builtin.set_fact:
+    nexus_container_status: true
+  when: nexus_result.exists
+  tags: nexus
+
+- name: nexus | Create nexus container
+  community.docker.docker_container:
+    name: "{{ nexus_container }}"
+    image: "{{ nexus_image }}:{{ nexus_version }}"
+    state: started
+    recreate: true
+    restart: true
+    restart_policy: "always"
+    published_ports:
+      - "{{ nexus_port }}:8081"
+    ulimits:
+      - "nofile:65536:65536"
+    volumes:
+      - /opt/nexus:/nexus-data
+  tags: nexus
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+
+- name: nexus | Sync configuration software into nexus-server's /tmp/re-raw-files
+  ansible.posix.synchronize:
+    src: "{{ path_for_re_raw_file }}"
+    dest: /tmp/re-raw-files
+  tags: nexus
+
+- name: nexus | Wait for /opt/nexus/admin.password generated
+  ansible.builtin.wait_for:
+    path: /opt/nexus/admin.password
+  when: nexus_container_status == false
+  tags: nexus
+
+- name: nexus | Get nexus_password
+  ansible.builtin.command: "docker exec {{ nexus_container }} cat /nexus-data/admin.password"
+  register: get_nexus_password
+  changed_when: false
+  ignore_errors: True
+  no_log: true
+  tags: nexus
+
+- name: nexus | Set nexus_password
+  ansible.builtin.set_fact:
+    nexus_password: "{{ get_nexus_password.stdout }}"
+  when: get_nexus_password is defined
+  no_log: true
+  tags: nexus
+
+- name: nexus | Create /opt/nexus/init
+  ansible.builtin.file:
+    path: "/opt/nexus/init"
+    state: directory
+    owner: "200"
+    group: "200"
+    mode: "0750"
+  tags: nexus
+
+- name: nexus | Generate config_nexus.sh from template
+  ansible.builtin.template:
+    src: config_nexus.sh.j2
+    dest: /opt/nexus/init/config_nexus.sh
+    mode: "0750"
+    backup: yes
+  when: nexus_password is defined and nexus_password != ''
+  tags: nexus
+
+- name: nexus | Generate upload_raw_to_nexus.sh from template
+  ansible.builtin.template:
+    src: upload_raw_to_nexus.sh.j2
+    dest: /opt/nexus/init/upload_raw_to_nexus.sh
+    mode: "0750"
+    backup: yes
+  when: nexus_password is defined and nexus_password != ''
+  tags: nexus
+
+- name: nexus | Test if nexus_server ready, retry 30 * 10 seconds (5mins)
+  ansible.builtin.uri:
+    url: "http://localhost:{{ nexus_port }}/service/rest/v1/repositories"
+    user: admin
+    password: "{{ nexus_password }}"
+    method: GET
+    return_content: yes
+    status_code: 200
+  register: test_config_nexus
+  until: test_config_nexus.status == 200
+  retries: 30
+  delay: 10
+  tags: nexus
+
+- name: nexus | Run /opt/nexus/init/config_nexus.sh
+  ansible.builtin.shell: bash /opt/nexus/init/config_nexus.sh
+  when: nexus_password is defined and nexus_password != '' and 're-raw' not in test_config_nexus.content
+  tags: nexus
+
+- name: nexus | Run /opt/nexus/init/upload_raw_to_nexus.sh
+  ansible.builtin.shell: bash /opt/nexus/init/upload_raw_to_nexus.sh
+  when: nexus_password is defined and nexus_password != '' and 're-raw' not in test_config_nexus.content
+  tags: nexus
+
+- name: nexus | Open firewall for nexus service
+  ansible.builtin.firewalld:
+    port: "{{ nexus_port }}/tcp"
+    permanent: true
+    state: enabled
+  notify:
+    - Reload firewalld
+  tags: nexus, firewalld

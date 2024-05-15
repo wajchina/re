@@ -1,0 +1,107 @@
+---
+
+- name: Playbooks | Get ansible variable
+  hosts: all
+  gather_facts: False
+  pre_tasks:
+    - name: Run setup in not check mode
+      setup:
+        filter: '{{ item }}'
+        gather_timeout: 60
+      with_items:
+        - 'ansible_distribution*'
+        - 'ansible_os_family'
+        - 'ansible_memtotal_mb'
+      async: 60
+      poll: 15
+      when: not ansible_check_mode
+      ignore_errors: '{{ ansible_check_mode }}'
+    - name: Run setup in check mode
+      setup:
+        filter: '{{ item }}'
+        gather_timeout: 60
+      with_items:
+        - 'ansible_distribution*'
+        - 'ansible_os_family'
+        - 'ansible_memtotal_mb'
+      when: ansible_check_mode
+
+- name: Playbooks | Run docker configuration
+  hosts: docker
+  roles:
+    - docker
+    - repository
+    - ntp
+    - autofs
+    - syncfiles
+    - security/audit
+    - security/fail2ban
+    - security/ulimit
+    - security/sysctl
+    - auth/ssh
+    - auth/sudo
+    - monitor/ganglia
+    - monitor/nagios/client
+    - rsyslog
+
+- name: Playbooks | Run proxy_server configuration
+  hosts: proxy_server
+  roles:
+    - proxy
+
+- name: Playbooks | Run mirror_server configuration
+  hosts: mirror_server
+  roles:
+    - mirror
+
+- name: Playbooks | Run nagios_server configuration
+  hosts: nagios_server
+  roles:
+    - monitor/nagios/server
+
+- name: Playbooks | Run common configuration
+  hosts: all:!re:!docker
+  roles:
+    - repository
+    - ntp
+    - autofs
+    - syncfiles
+    - security/audit
+    - security/fail2ban
+    - security/ulimit
+    - security/sysctl
+    - auth/ssh
+    - auth/sudo
+    - monitor/ganglia
+    - monitor/nagios/client
+    - rsyslog
+    - network/nameserver
+
+- name: Playbooks | Run computer infiniband configuration
+  hosts: compute
+  roles:
+    - network/mlnx_ofed
+    - network/ipoib
+  tags: infiniband
+
+- name: Playbooks | Run dns server configuration
+  hosts: dns_server
+  roles:
+    - dns
+
+- name: Playbooks | Run nfs server configuration
+  hosts: nfs_server
+  roles:
+    - nfs
+
+- name: Playbooks | Run monitor/ganglia configuration
+  hosts: ganglia
+  tags: ganglia
+  roles:
+    - monitor/ganglia
+
+- name: Playbooks | Run scheduler/sge configuration
+  hosts: sge
+  tags: sge
+  roles:
+    - scheduler/sge

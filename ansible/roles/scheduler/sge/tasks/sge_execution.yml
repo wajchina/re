@@ -1,0 +1,61 @@
+---
+
+- name: sge_execution | Install sge execution packages only
+  ansible.builtin.yum:
+    name: "{{ sge_execution_pkgs }}"
+    state: present
+  vars:
+    sge_execution_pkgs:
+      - "{{ extra_packages_url }}/rpm/sge-8.1.9-1.x86_64.rpm"
+  tags: yum, sge
+
+- name: sge_execution | Copy installation config file to destination
+  ansible.builtin.template:
+    src: installation.conf.j2
+    dest: "{{ sge_root }}/installation.conf"
+  tags: sge_execution
+
+- name: sge_execution | Create sge cell directory
+  ansible.builtin.file:
+    path: "{{ sge_root }}/{{ cell_name }}/common"
+    state: directory
+    recurse: yes
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+  tags: sge_execution
+
+- name: sge_execution | Generate sge common configuration files
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ sge_root }}/{{ cell_name }}/common/{{ item }}"
+  with_items:
+    - act_qmaster
+    - bootstrap
+    - cluster_name
+    - settings.csh
+    - settings.sh
+    - sgeexecd
+  tags: sge_execution
+
+- name: sge_execution | Change sgeexecd file permission
+  ansible.builtin.file:
+    dest: "{{ sge_root }}/{{ cell_name }}/common/sgeexecd"
+    mode: 0755
+
+- name: sge_execution | Configure sge execution only
+  ansible.builtin.command: ./inst_sge -noremote -x -auto installation.conf
+  args:
+    chdir: "{{ sge_root }}"
+    creates: /etc/init.d/sgeexecd*
+  tags: sge_execution
+
+- name: sge_execution | Wait for 60s before starting sge service
+  ansible.builtin.wait_for:
+    timeout: 60
+
+- name: sge_execution | Enable sge execution service
+  ansible.builtin.service:
+    name: "sgeexecd.{{ sge_cluster_name }}"
+    enabled: yes
+    state: started
+  tags: sge_execution

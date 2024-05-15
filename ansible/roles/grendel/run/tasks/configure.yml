@@ -1,0 +1,58 @@
+---
+
+- name: configure | Copy images/hosts/templates files to grendel volume
+  ansible.builtin.copy:
+    src: "../inputs/{{ REGION }}/_files/{{ item.sname }}"
+    dest: "{{ grendel_volume }}{{ item.dname }}"
+  with_items:
+    - { sname: "grendel.toml", dname: "/etc/grendel.toml"}
+    - { sname: "images.json", dname: "/etc/images.json"}
+    - { sname: "hosts.json", dname: "/etc/hosts.json"}
+    - { sname: "templates", dname: ""}
+    - { sname: "hosts", dname: "/opt/sync/hosts"}
+  tags:
+    - grendel_run
+    - configure
+
+- name: configure | Copy hosts from files to /etc/hosts
+  ansible.builtin.copy:
+    src: "../inputs/{{ REGION }}/_files/hosts"
+    dest: "/etc/hosts"
+    backup: yes
+    mode: '0644'
+  tags:
+    - grendel_run
+    - mapping_file
+
+- name: configure | Initialize variables
+  ansible.builtin.set_fact:
+    grendel_container_status: false
+  tags:
+    - grendel_run
+    - configure
+
+- name: configure | Check grendel status on the machine
+  community.docker.docker_container_info:
+    name: grendel
+  register: grendel_result
+  tags:
+    - grendel_run
+    - configure
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+
+- name: configure | Update grendel container status
+  ansible.builtin.set_fact:
+    grendel_container_status: true
+  when: grendel_result.exists
+  tags:
+    - grendel_run
+    - configure
+
+- name: configure | Restart grendel container
+  ansible.builtin.command: docker restart grendel
+  changed_when: false
+  when: grendel_container_status == true
+  tags:
+    - grendel_run
+    - configure

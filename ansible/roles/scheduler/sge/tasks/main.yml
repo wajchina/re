@@ -1,0 +1,21 @@
+---
+
+- name: import sge requirement
+  ansible.builtin.import_tasks: sge_requirement.yml
+  when: inventory_hostname in groups['sge']
+
+- name: import sge_qmaster
+  ansible.builtin.import_tasks: sge_qmaster.yml
+  when: inventory_hostname in groups['sge_qmaster']
+
+- name: import sge_submit
+  ansible.builtin.import_tasks: sge_submit.yml
+  when: inventory_hostname in groups['sge_submit']
+
+- name: import sge_execution
+  ansible.builtin.import_tasks: sge_execution.yml
+  when: inventory_hostname in groups['sge_execution']
+
+- name: import sge environment
+  ansible.builtin.import_tasks: sge_environment.yml
+  when: inventory_hostname in groups['sge']

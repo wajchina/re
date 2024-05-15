@@ -1,0 +1,24 @@
+#!/bin/bash
+# Upload software packages to nexus repository re-raw
+
+LOCAL_DIR='/tmp/re-raw-files/configuration'
+ADMIN_PASSWORD='{{ nexus_password }}'
+NEXUS_PORT='{{ nexus_port }}'
+
+for rpm in `ls ${LOCAL_DIR}/rpm`;do 
+curl -v -u admin:${ADMIN_PASSWORD} -F "raw.directory=/configuration/rpm" -F "raw.asset1=@${LOCAL_DIR}/rpm/${rpm}" -F "raw.asset1.filename=${rpm}" "http://localhost:${NEXUS_PORT}/service/rest/v1/components?repository=hosted-re-raw"
+done
+
+for lsi in `ls ${LOCAL_DIR}/src/nagios/lsi/centos6`;do 
+curl -v -u admin:${ADMIN_PASSWORD} -F "raw.directory=/configuration/src/nagios/lsi/centos6" -F "raw.asset1=@${LOCAL_DIR}/src/nagios/lsi/centos6/${lsi}" -F "raw.asset1.filename=${lsi}" "http://localhost:${NEXUS_PORT}/service/rest/v1/components?repository=hosted-re-raw"
+done
+
+for lsi in `ls ${LOCAL_DIR}/src/nagios/lsi/centos7`;do 
+curl -v -u admin:${ADMIN_PASSWORD} -F "raw.directory=/configuration/src/nagios/lsi/centos7" -F "raw.asset1=@${LOCAL_DIR}/src/nagios/lsi/centos7/${lsi}" -F "raw.asset1.filename=${lsi}" "http://localhost:${NEXUS_PORT}/service/rest/v1/components?repository=hosted-re-raw"
+done
+
+curl -v -u admin:${ADMIN_PASSWORD} -F "raw.directory=/configuration/src/ganglia" -F "raw.asset1=@${LOCAL_DIR}/src/ganglia/nvidia-ml-py-11.450.51.tar.gz" -F "raw.asset1.filename=nvidia-ml-py-11.450.51.tar.gz" "http://localhost:${NEXUS_PORT}/service/rest/v1/components?repository=hosted-re-raw"
+
+for slurm in `ls ${LOCAL_DIR}/src/slurm`;do 
+curl -v -u admin:${ADMIN_PASSWORD} -F "raw.directory=/configuration/src/slurm" -F "raw.asset1=@${LOCAL_DIR}/src/slurm/${slurm}" -F "raw.asset1.filename=${slurm}" "http://localhost:${NEXUS_PORT}/service/rest/v1/components?repository=hosted-re-raw"
+done

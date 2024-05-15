@@ -1,0 +1,29 @@
+---
+
+- name: requirement | State of firewall
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: yes
+  tags:
+    - grendel_build
+    - requirement
+
+- name: requirement | Install required packages
+  ansible.builtin.package:
+    name: "{{ required_packages }}"
+    state: present
+  environment: "{{ proxy_env }}"
+  tags:
+    - grendel_build
+    - requirement
+
+- name: requirement | Install docker using pip
+  ansible.builtin.pip:
+    name: docker
+    executable: pip3
+    state: present
+  environment: "{{ proxy_env }}"
+  tags:
+    - grendel_build
+    - requirement

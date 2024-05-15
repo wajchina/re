@@ -1,0 +1,102 @@
+{{ ansible_managed | comment }}
+
+{% if groups['docker'] is defined %}
+{% if groups['docker'] != [] %}
+
+# docker node
+define hostgroup {
+    hostgroup_name          docker
+    alias                   docker-node
+}
+
+{% for host in groups['docker'] %}
+define host {
+    use                     linux-server
+    host_name               {{ host }}
+    hostgroups              docker
+}
+{% endfor %}
+
+# service for docker
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     PING
+    check_command           check-host-alive
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     SSH
+    check_command           check_ssh
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     CPU
+    check_command           check_nrpe!check_load
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     Memory
+    check_command           check_nrpe!check_mem
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     Swap
+    check_command           check_nrpe!check_swap
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     Dir_usage
+    check_command           check_nrpe!check_dir_usage
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     Chronyd
+    check_command           check_nrpe!check_service_chronyd
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     Audit
+    check_command           check_nrpe!check_service_auditd
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     Ganglia-gmond
+    check_command           check_nrpe!check_service_gmond
+    notifications_enabled   1
+}
+
+define service{
+    use                     generic-service,graphed-service
+    hostgroup_name          docker
+    service_description     Docker
+    check_command           check_nrpe!check_service_docker
+    notifications_enabled   1
+}
+
+{% endif %}
+{% endif %}

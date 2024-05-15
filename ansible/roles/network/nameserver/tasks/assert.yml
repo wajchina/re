@@ -1,0 +1,41 @@
+---
+
+- name: assert | Test if resolv_search is set correctly
+  ansible.builtin.assert:
+    that:
+      - resolv_nameservers is iterable
+    quiet: yes
+  when:
+    - resolv_search is defined
+
+- name: assert | Test if resolv_domain is set correctly
+  ansible.builtin.assert:
+    that:
+      - resolv_domain is string
+    quiet: yes
+  when:
+    - resolv_domain is defined
+
+- name: assert | Test if resolv_nameservers is set correctly
+  ansible.builtin.assert:
+    that:
+      - resolv_nameservers is iterable
+    quiet: yes
+  when:
+    - resolv_nameservers is defined
+
+- name: assert | Test if resolv_sortlist is set correctly
+  ansible.builtin.assert:
+    that:
+      - resolv_sortlist is iterable
+    quiet: yes
+  when:
+    - resolv_sortlist is defined
+
+- name: assert | Test if resolv_options is set correctly
+  ansible.builtin.assert:
+    that:
+      - resolv_options is iterable
+    quiet: yes
+  when:
+    - resolv_options is defined

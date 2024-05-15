@@ -1,0 +1,3 @@
+#!/bin/bash
+df | awk -F'[ %]+' 'BEGIN{printf "Search mdt.. "};$0~/mdt/{if($(NF-1)>=85) {printf "size:"$(NF-1)"% ";exit 2}}'
+df -i | awk -F'[ %]+' '$0~/mdt/{if($(NF-1)>=85) {printf "inodes:"$(NF-1)"% ";exit 2}}'

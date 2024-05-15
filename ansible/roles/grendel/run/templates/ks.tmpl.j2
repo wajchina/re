@@ -1,0 +1,88 @@
+{{ ansible_managed | comment }}
+# https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/installation_guide/chap-kickstart-installations
+
+{% raw %}
+install
+
+liveimg --url="{{ .liveimg }}"
+
+url --url="{{ .baseuri }}/repo/os/centos"
+
+lang en_US
+selinux --disabled
+keyboard us
+timezone --utc Asia/Shanghai
+skipx
+
+firewall --disabled
+
+bootloader --timeout=10
+
+text
+
+{{ with .rootpw }}
+# Set the system's root password
+rootpw --iscrypted {{ . }}
+# During the installation, we can interact with the installation program and monitor its progress over an SSH connection
+sshpw --username=root {{ . }} --iscrypted
+{{ end }}
+
+reboot
+{% endraw %}
+
+%packages
+@core
+{{ kickstart_packages }}
+%end
+
+# Network
+{% if kickstart_network != "" %}
+{{ kickstart_network }}
+%include /tmp/network.cfg
+{% endif %}
+
+# Disk partition
+{% if kickstart_partition != "" %}
+{{ kickstart_partition }}
+%include /tmp/partition.cfg
+{% endif %}
+
+# Run once
+{{ kickstart_runonce }}
+
+# Generate /etc/hosts
+{{ kickstart_hosts }}
+
+# Repository
+{{ kickstart_repository }}
+
+# SSH
+{{ kickstart_ssh }}
+
+# COMMON
+{{ kickstart_common }}
+
+{% raw %}
+%pre --log=/tmp/ks_pre-kickstart.log
+curl {{ .kickstart }} -o /tmp/ks.cfg
+exit 0
+%end
+
+%post --log=/var/log/re/ks_post-grendel.log
+curl -X POST {{ .complete }}
+exit 0
+%end
+{% endraw %}
+
+# Do It Yourself
+{{ kickstart_diy }}
+
+# copy %pre logs
+%post --nochroot --log=/mnt/sysimage/var/log/re/ks_post-copy-pre-log.log
+
+echo "Copying %pre stage log files"
+/usr/bin/cp -rv /tmp/ks_pre-partition.log /mnt/sysimage/var/log/re/
+/usr/bin/cp -rv /tmp/ks_pre-kickstart.log /mnt/sysimage/var/log/re/
+/usr/bin/cp -rv /tmp/ks_pre-network.log /mnt/sysimage/var/log/re/
+
+%end

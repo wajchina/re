@@ -1,0 +1,63 @@
+---
+
+- name: build | Get grendel
+  block:
+    - name: build | delete grendel download temporary directory
+      ansible.builtin.file:
+        path: /tmp/grendel_download
+        state: absent
+    - name: build | create grendel download temporary directory
+      ansible.builtin.file:
+        path: /tmp/grendel_download
+        state: directory
+    - name: build | download grendel package with checksum url (sha256)
+      ansible.builtin.get_url:
+        url: "{{ grendel_package_url }}"
+        dest: /tmp/grendel_download/grendel.tar.gz
+        checksum: sha256:{{ grendel_checksum_url }}
+      environment: "{{ proxy_env }}"
+    - name: build | unarchive grendel package
+      ansible.builtin.unarchive:
+        copy: no
+        src: /tmp/grendel_download/grendel.tar.gz
+        dest: /tmp/grendel_download
+    - name: build | copy grendel
+      ansible.builtin.shell: |
+        mv /tmp/grendel_download/grendel-*-linux-amd64 /tmp/grendel_download/tmp
+        cp /tmp/grendel_download/tmp/grendel "{{ role_path }}/files/grendel/grendel"
+    - name: build | delete grendel download temporary directory
+      ansible.builtin.file:
+        path: /tmp/grendel_download
+        state: absent
+  tags:
+    - grendel_build
+    - build
+
+- name: build | Delete grendel image
+  community.docker.docker_image:
+    name: "{{ grendel_image_name }}"
+    tag: "{{ grendel_image_tag }}"
+    state: absent
+    force_absent: yes
+  tags:
+    - grendel_build
+    - build
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+
+- name: build | Build grendel image (It may take 2-5 mins)
+  community.docker.docker_image:
+    name: "{{ grendel_image_name }}"
+    tag: "{{ grendel_image_tag }}"
+    source: build
+    build:
+      path: "{{ role_path }}/files/grendel"
+      network: host
+      # The default for build.pull is 'yes', but will be changed to 'no' in Ansible 2.12
+      pull: no
+    state: present
+  tags:
+    - grendel_build
+    - build
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"

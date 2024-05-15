@@ -1,0 +1,22 @@
+---
+
+- name: proxy | Initialize variables
+  ansible.builtin.set_fact:
+    proxy_env:
+      http_proxy: ''
+      https_proxy: ''
+      ftp_proxy: ''
+      no_proxy: ''
+  tags:
+    - proxy
+
+- name: proxy | Save proxy environment variables to proxy_env
+  ansible.builtin.set_fact:
+    proxy_env:
+      http_proxy: "http://{{ proxy_server_port }}"
+      https_proxy: "http://{{ proxy_server_port }}"
+      ftp_proxy: "http://{{ proxy_server_port }}"
+      no_proxy: "{{ proxy_no_list }}"
+  when: proxy_server_port != '' and proxy_no_list is defined
+  tags:
+    - proxy

@@ -1,0 +1,51 @@
+---
+
+# ganglia common
+ganglia_config_user: "ganglia"
+ganglia_config_owner: "RE"
+ganglia_config_latlong: "N40.13 W116.65"
+ganglia_config_url: "http://re.mycluster.cn"
+ganglia_cluster_name: "re-cluster-{{ REGION }}"
+ganglia_grid_name: "re-grid-{{ REGION }}"
+
+# gmetad
+gmetad_server_hostname: "localhost"
+ganglia_config_gmetad:
+  grid_name: "{{ ganglia_grid_name }}"
+  data_sources:
+    - name: "{{ ganglia_cluster_name }}"
+      server_port:
+        - "{{ gmetad_server_hostname }}:8649"
+
+# gmond
+ganglia_config_gmond:
+  data_sources:
+    name: "{{ ganglia_cluster_name }}"
+    port: 8649
+    servers:
+      - "{{ gmetad_server_hostname }}"
+  globals:
+    mute: 'no'
+    deaf: 'yes'
+    host_dmax: 432000
+  acl_allow:
+    - ip: 127.0.0.1
+      mask: 32
+    - ip: 10.0.0.0
+      mask: 8
+    - ip: 172.16.0.0
+      mask: 12
+    - ip: 192.168.0.0
+      mask: 16
+
+# web
+ganglia_config_web:
+  allow:
+    - ip: 127.0.0.1
+      mask: 32
+    - ip: 10.0.0.0
+      mask: 8
+    - ip: 172.16.0.0
+      mask: 12
+    - ip: 192.168.0.0
+      mask: 16

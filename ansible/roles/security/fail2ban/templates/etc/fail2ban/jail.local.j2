@@ -1,0 +1,13 @@
+[DEFAULT]
+bantime = 600
+maxretry = 6
+findtime = 600
+ignoreip = 127.0.0.1
+
+[sshd]
+enabled = true
+port = ssh
+action = iptables-multiport
+logpath = /var/log/secure
+maxretry = 6
+bantime = 1800

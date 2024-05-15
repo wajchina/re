@@ -1,0 +1,16 @@
+---
+
+- name: Create repository
+  ansible.builtin.import_tasks: repository.yml
+
+- name: Run grendel container
+  ansible.builtin.import_tasks: run.yml
+
+- name: Mapping file
+  ansible.builtin.import_tasks: mapping_file.yml
+
+- name: Generate kickstart
+  ansible.builtin.import_tasks: kickstart.yml
+
+- name: Configure grendel
+  ansible.builtin.import_tasks: configure.yml

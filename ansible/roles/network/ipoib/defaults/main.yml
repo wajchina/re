@@ -1,0 +1,3 @@
+---
+
+fail_ib_nic: "IB connectivity could not be found on host: {{ ansible_ssh_host }}"

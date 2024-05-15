@@ -1,0 +1,14 @@
+#
+admin_user              {{ admin_user }}
+default_domain          none
+ignore_fqdn             true
+spooling_method         classic
+spooling_lib            libspoolc
+spooling_params         {{ sge_root }}/{{ cell_name }}/common;{{ sge_root }}/{{ cell_name }}/spool/qmaster
+binary_path             {{ sge_root }}/bin
+qmaster_spool_dir       {{ sge_root }}/{{ cell_name }}/spool/qmaster
+security_mode           none
+listener_threads        2
+worker_threads          2
+scheduler_threads       1
+jvm_threads             0

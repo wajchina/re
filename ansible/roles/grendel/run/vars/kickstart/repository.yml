@@ -1,0 +1,10 @@
+---
+
+kickstart_repository: |
+
+  %post --log=/var/log/re/ks_post-repo.log
+
+  mkdir -v /etc/yum.repos.d/orig
+  cp -v /etc/yum.repos.d/*.repo /etc/yum.repos.d/orig
+
+  %end

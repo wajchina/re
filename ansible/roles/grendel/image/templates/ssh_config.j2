@@ -1,0 +1,7 @@
+{{ ansible_managed | comment }}
+# {{ ssh_config_dest }}/ssh_config
+
+Host *
+      ForwardX11              yes
+      ForwardAgent            yes
+      StrictHostKeyChecking   no

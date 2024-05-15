@@ -1,0 +1,6 @@
+{{ ansible_managed | comment }}
+
+# Global history profile
+HISTSIZE=100000
+readonly HISTTIMEFORMAT="%F %T "
+readonly PROMPT_COMMAND='/usr/bin/logger -p local3.info -t history "auid=$(/usr/bin/who am i |/bin/awk "{print \$1\" time=\"\$3\"_\"\$4\" src=\"\$5}") cwd=[`/bin/pwd`] euid=$(/usr/bin/whoami) cmd=$(history 1 | { read x cmd; echo "$cmd"; })"'

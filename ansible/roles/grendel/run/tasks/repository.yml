@@ -1,0 +1,150 @@
+---
+
+- name: repository | Assert valid centos_iso_file_path
+  ansible.builtin.stat:
+    path: "{{ path_for_centos_iso_file }}"
+    get_checksum: no
+  register: result_path_centos_iso_file
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Assert valid ubuntu_iso_file_path
+  ansible.builtin.stat:
+    path: "{{ path_for_ubuntu_iso_file }}"
+    get_checksum: no
+  register: result_path_ubuntu_iso_file
+  tags:
+    - grendel_run
+    - repository
+
+- name : Incorrect centos_iso_file_path
+  ansible.builtin.fail:
+    msg: "{{ invalid_iso_file_path }}"
+  when: ( result_path_centos_iso_file.stat.exists == false ) or ( ".iso" not in path_for_centos_iso_file )
+  tags:
+    - grendel_run
+    - repository
+
+- name : Incorrect ubuntu_iso_file_path
+  ansible.builtin.fail:
+    msg: "{{ invalid_iso_file_path }}"
+  when: ( result_path_ubuntu_iso_file.stat.exists == false ) or ( ".iso" not in path_for_ubuntu_iso_file )
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Fail when iso path valid but image not right
+  ansible.builtin.fail:
+    msg: "{{ invalid_iso_file_path }}"
+  when: ( result_path_centos_iso_file.stat.exists == true ) and ( ".iso" not in path_for_centos_iso_file )
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Fail when iso path valid but image not right
+  ansible.builtin.fail:
+    msg: "{{ invalid_iso_file_path }}"
+  when: ( result_path_ubuntu_iso_file.stat.exists == true ) and ( ".iso" not in path_for_ubuntu_iso_file )
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Create repository directory
+  ansible.builtin.file:
+    path: "{{ grendel_volume }}/opt/os/{{ item }}"
+    state: directory
+  loop:
+    - "{{ centos_repo_path }}"
+    - "{{ ubuntu_repo_path }}"
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Create iso repository directory
+  ansible.builtin.file:
+    path: "{{ grendel_volume }}/opt/iso"
+    state: directory
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Initialize vars
+  ansible.builtin.set_fact:
+    mount_os_iso_status: true
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Check centos mountpoint
+  ansible.builtin.command: mountpoint {{ grendel_volume }}/opt/os/{{ centos_repo_path }}
+  changed_when: false
+  register: mountpoint_result_centos
+  ignore_errors: yes
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Check ubuntu mountpoint
+  ansible.builtin.command: mountpoint {{ grendel_volume }}/opt/os/{{ ubuntu_repo_path }}
+  changed_when: false
+  register: mountpoint_result_ubuntu
+  ignore_errors: yes
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Update mount status
+  ansible.builtin.set_fact:
+    mount_centos_iso_status: "{{ mountpoint_result_centos.failed }}"
+    mount_ubuntu_iso_status: "{{ mountpoint_result_ubuntu.failed }}"
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Umount the centos iso file
+  ansible.builtin.command: umount {{ grendel_volume }}/opt/os/{{ centos_repo_path }}
+  changed_when: false
+  when: mount_centos_iso_status == false
+  args:
+    warn: no
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Umount the ubuntu iso file
+  ansible.builtin.command: umount {{ grendel_volume }}/opt/os/{{ ubuntu_repo_path }}
+  changed_when: false
+  when: mount_ubuntu_iso_status == false
+  args:
+    warn: no
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Mount the centos iso file
+  ansible.builtin.command: mount -o loop {{ path_for_centos_iso_file }} {{ grendel_volume }}/opt/os/{{ centos_repo_path }}
+  changed_when: false
+  args:
+    warn: no
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Mount the ubuntu iso file
+  ansible.builtin.command: mount -o loop {{ path_for_ubuntu_iso_file }} {{ grendel_volume }}/opt/os/{{ ubuntu_repo_path }}
+  changed_when: false
+  args:
+    warn: no
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Link the ubuntu iso file
+  ansible.builtin.command: ln -sf {{ path_for_ubuntu_iso_file }} {{ grendel_volume }}/opt/iso/ubuntu.iso
+  changed_when: false
+  args:
+    warn: no
+  tags:
+    - grendel_run
+    - repository

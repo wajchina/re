@@ -1,0 +1,17 @@
+{{ ansible_managed | comment }}
+
+#
+# Ganglia monitoring system php web frontend
+#
+
+Alias /ganglia /usr/share/ganglia
+
+<Location /ganglia>
+
+{% if ganglia_config_web.allow is defined %}
+{% for allow in ganglia_config_web.allow %}
+  Require ip {{ allow.ip }}/{{ allow.mask }}
+{% endfor %}
+{% endif %}
+
+</Location>

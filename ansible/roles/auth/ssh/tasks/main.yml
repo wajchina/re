@@ -1,0 +1,4 @@
+---
+
+- name: Import ssh_keys configuration
+  ansible.builtin.import_tasks: ssh_keys.yml

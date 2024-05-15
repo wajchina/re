@@ -1,0 +1,22 @@
+---
+
+- name: Import assert.yml
+  ansible.builtin.import_tasks: assert.yml
+  run_once: yes
+  delegate_to: localhost
+  tags:
+    - mlnx_ofed
+
+- name: Check status of openibd service
+  ansible.builtin.command: systemctl status openibd
+  changed_when: false
+  failed_when: false
+  register: openibd_status
+  tags:
+    - mlnx_ofed
+
+- name:  Install mlnx_ofed if not already installed
+  ansible.builtin.include_tasks: mlnx_ofed.yml
+  when: "'Active: active' not in openibd_status.stdout"
+  tags:
+    - mlnx_ofed

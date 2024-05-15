@@ -1,0 +1,57 @@
+---
+
+- name: assert | Test if ntp_state is set correctly
+  ansible.builtin.assert:
+    that:
+      - ntp_state is defined
+      - ntp_state in [ "started", "stopped" ]
+    quiet: yes
+
+- name: assert | Test if ntp_enabled is set correctly
+  ansible.builtin.assert:
+    that:
+      - ntp_enabled is defined
+      - ntp_enabled | type_debug == "bool"
+    quiet: yes
+
+- name: assert | Test if ntp_servers is set correctly
+  ansible.builtin.assert:
+    that:
+      - ntp_servers is defined
+      - ntp_servers is iterable
+    quiet: yes
+
+- name: assert | Test if item in ntp_servers is set correctly
+  ansible.builtin.assert:
+    that:
+      - item is defined
+      - item is string
+    quiet: yes
+  loop: "{{ ntp_servers }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: assert | Test if ntp_clients is set correctly
+  ansible.builtin.assert:
+    that:
+      - ntp_clients is iterable
+    quiet: yes
+  when:
+    - ntp_clients is defined
+
+- name: assert | Test if item in ntp_clients is set correctly
+  ansible.builtin.assert:
+    that:
+      - item is defined
+      - item is string
+    quiet: yes
+  loop: "{{ ntp_clients }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: assert | Test if ntp_timezone is set correctly
+  ansible.builtin.assert:
+    that:
+      - ntp_timezone is defined
+      - ntp_timezone is string
+    quiet: yes

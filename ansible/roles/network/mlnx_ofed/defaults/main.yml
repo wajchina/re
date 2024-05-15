@@ -1,0 +1,8 @@
+---
+
+ofed_packages:
+  - mlnx-ofed-all
+
+mlnx_ofed_version: 5.8-3.0.7.0
+mlnx_ofed_distro: rhel7.9
+mlnx_ofed_arch: x86_64

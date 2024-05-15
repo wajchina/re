@@ -1,0 +1,26 @@
+---
+
+# Set the default domain. This can be overwritten per item.
+ulimit_domain: '*'
+
+# Set the limit type. This can be overwritten per item.
+ulimit_limit_type: soft
+
+# Set the file where to write to.
+ulimit_dest: /etc/security/limits.d/re.conf
+
+# Should a backup of limits.conf be created on changes?
+ulimit_backup: yes
+
+# Set defaults
+ulimit_items:
+  - limit_item: nofile
+    domain: '*'
+    limit_type: soft
+    value: 204800
+  - limit_item: nofile
+    domain: '*'
+    limit_type: hard
+    value: 204800
+
+

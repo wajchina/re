@@ -1,0 +1,10 @@
+---
+
+- name: Set up KVM platform
+  ansible.builtin.import_tasks: require.yml
+
+- name: Configure Virtual Machines
+  ansible.builtin.include_tasks: vm.yml
+  loop: "{{ virtual_machines }}"
+  loop_control:
+    loop_var: vm

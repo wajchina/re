@@ -1,0 +1,55 @@
+---
+
+- name: "{{ vm.name }} :: Ensure individual dirs exist"
+  ansible.builtin.file:
+    path: "{{ kvm_vm_ks_path }}/{{ vm.name }}"
+    state: directory
+
+- name: "{{ vm.name }} :: Generate kickstart"
+  ansible.builtin.template:
+    src: ks.cfg.j2
+    dest: "{{ kvm_vm_ks_path }}/{{ vm.name }}/ks.cfg"
+
+- name: "{{ vm.name }} :: Run virt-install"
+  ansible.builtin.command: >
+    virt-install
+    --location {{ vm.iso }}
+    --name {{ vm.name }}
+    --memory {{ vm.mem|default('4096') }}
+    --vcpus {{ vm.cpu|default('1') }}
+    --disk {{ kvm_vm_disk_path }}/{{ vm.name }}.qcow2,size={{ vm.disk|default('10') }},bus=virtio
+    {% for net in vm.net %}
+    --network bridge={{ net.bridge }},model=virtio
+    {% endfor %}
+    --noautoconsole
+    --graphics=none
+    --console pty,target_type=serial
+    --os-type {{ vm.os_type|default('linux') }}
+    --os-variant {{ vm.os_variant|default('rhel-unknown') }}
+    --initrd-inject {{ kvm_vm_ks_path }}/{{ vm.name }}/ks.cfg
+    --extra-args "inst.ks=file:/ks.cfg console=tty0 console=ttyS0,115200n8"
+  when:
+    ansible_distribution == "CentOS" and ansible_distribution_major_version == "7"
+  ignore_errors: true
+
+- name: "{{ vm.name }} :: Run virt-install"
+  ansible.builtin.command: >
+    virt-install
+    --location {{ vm.iso }}
+    --name {{ vm.name }}
+    --memory {{ vm.mem|default('4096') }}
+    --vcpus {{ vm.cpu|default('1') }}
+    --disk {{ kvm_vm_disk_path }}/{{ vm.name }}.qcow2,size={{ vm.disk|default('10') }},bus=virtio
+    {% for net in vm.net %}
+    --network bridge={{ net.bridge }},model=virtio
+    {% endfor %}
+    --noautoconsole
+    --graphics=none
+    --os-type {{ vm.os_type|default('linux') }}
+    --os-variant {{ vm.os_variant|default('rhel-unknown') }}
+    --initrd-inject {{ kvm_vm_ks_path }}/{{ vm.name }}/ks.cfg
+    --extra-args "inst.ks=file:/ks.cfg"
+  when:
+    (ansible_distribution == "Almalinux" and ansible_distribution_major_version == "8") or
+    (ansible_distribution == "Rocky" and ansible_distribution_major_version == "8")
+  ignore_errors: true

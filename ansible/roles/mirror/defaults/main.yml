@@ -1,0 +1,9 @@
+---
+
+nexus_image: sonatype/nexus3
+nexus_version: 3.37.0
+nexus_container: nexus
+nexus_port: 8081
+path_for_re_raw_file: /opt/re/configuration
+
+local_mirror_server: ''

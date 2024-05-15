@@ -1,0 +1,756 @@
+#! /bin/bash
+###########################################################################
+# Script:       $0
+# Author:       Homer Li
+# Modify:       Homer Li
+# Date:         2015-02-02
+#### 23-02-13, Fix the tape lib bug
+#### 23-03-08, more error output for md34
+#### 23-03-10, Support the lenovo D3284 JBOD and the E-series SAN (E-series will switch to local in the future)
+#### 23-05-17, Monitor resliver and scrub log, fix the regex for match the IBM bad device
+
+# Email:        liyan2@genomics.org.cn
+# Usage:        $0
+# Discription:  Show current raid status, rebuild chkraid_nagios
+#
+###########################################################################
+checkcmd() {
+        if [ ! $(which $1) ]
+        then
+                echo "Please install $1"
+                exit 1
+        fi
+}
+ARECACLI="/root/bin/"
+checkcmd dmidecode
+checkcmd lspci
+storcli() {
+    if ! which storcli64 > /dev/null 2>&1
+    then
+       STORCLI="/opt/MegaRAID/storcli/"
+    fi
+    vendor=$(dmidecode -t system  | grep dell -io)
+    CLICMD=storcli64
+    [[ $vendor =~ Dell ]] && (lspci | grep -Ei "megaraid") > /dev/null && STORCLI="/opt/MegaRAID/perccli" && CLICMD=perccli64
+    export PATH=$PATH:$STORCLI
+    if echo "$MegaRAID_out" | grep -i "No Controller" > /dev/null
+    then
+        echo -n "No MegaRAID,"
+    else
+        MegaRAID_out=$($CLICMD /call show all)
+        echo "$MegaRAID_out" |  awk 'BEGIN {rcode=0}
+        {
+                if($0~/BBU Status/) {
+                        if ($NF==0 || $NF~/NA/)
+                        {
+                            printf "Batt: "$NF ";"
+                        } else {
+                            printf "Batt: "$NF ";"
+                            rcode=1
+                        }
+                }
+                if ($0~/Controller Status/ && $0!~/Peer Controller Status/) {
+                       if ($NF~/Optimal/ || $NF~/OK/ || $NF~/Active/) {
+                        printf "Con: "$NF";"
+                       } else {
+                        printf "Con: "$NF";"
+                        rcode=2
+                       }
+                }
+                if($2~/RAID/ && $1~/^[0-9]/) {
+                        if ($3~/Optl/) {
+                                printf "lv: "$2" "$3";"
+                        } else {
+                                printf "lv: "$2" "$3";"
+                                rcode=2
+                        }
+                }
+        } END {exit rcode}'
+    fi
+    rcode=$?
+    return $rcode
+}
+hpraid() {
+        [[ ! -f /dev/shm/nrpe_c2babed0c4be41f6/hpe_raid_bdab105ca4a3f441 ]] && hpssacli ctrl all show  | awk -F '[() ]+' '$0!~/HBA/ {if($6>=0) print $6}'  > /dev/shm/nrpe_c2babed0c4be41f6/hpe_raid_bdab105ca4a3f441
+        while read line
+        do
+               #check raid
+           if [[ $line == ?(-)+([0-9]) ]]
+           then
+               hpssacli ctrl slot=$line show config  | awk -F '[() ]+' '{
+                 if($0~/physicaldrive/) {
+                   if($(NF-1)!~/OK*/ || length($(NF-1))==0)
+                      {printf $3":"$(NF-1)" "; rcode=2}
+                   }
+               }END {exit rcode}'
+               hpssacli ctrl slot=$line show | awk '{if($0~/Capacitor Status/ && $NF=="OK") {a[0]=$NF} else if(a[0]!="OK") {a[0]="No found"}; if ($0~/Controller Temperature/) {a[1]=$NF} else if(a[1]!~/^[0-9]+$/) {a[1]="not get temperature"}}
+               END{
+                  if(a[0]!="OK"||a[1]>70||a[1]!~/^[0-9]+$/){
+                     rcode=1;
+                  }
+                    printf " Temper(C):"a[1] " Capacitor:"a[0]; exit rcode
+               }'
+           else
+               echo "Could not got the slot number" && return 2
+           fi
+        done < /dev/shm/nrpe_c2babed0c4be41f6/hpe_raid_bdab105ca4a3f441
+}
+is_e_ser() {
+   while read line
+   do
+     #e_ser_out=$(SMcli -k $line  -u admin -P /opt/SMcli-01.50.00.9001/bin/password -c "Show storageArray;")
+      [[ -z $line ]] && continue
+      if [ -n $line ]
+      then
+         check_md34 "lenovo" $line
+         rcode=$?
+         if [[ $rcode -eq 2 ]]
+         then
+            return $rcode
+         fi
+      fi
+   done < /opt/SMcli-01.50.00.9001/bin/hosts
+}
+
+is_md34() {
+### Just for patch MD3420, beacuse "SMcli localhost" not work for MD3420
+   while read line
+   do
+      [[ -z $line ]] && continue
+      if [ -n $line ]
+      then
+         check_md34 "dell" $line
+         rcode=$?
+         if [[ $rcode -eq 2 ]] 
+         then
+            return $rcode
+         fi
+      fi
+   done <<< "$(SMcli localhost -n storagename -c "show storageArray;" 2>&1 |  grep -A 5 "Valid Storage" | grep -vEi 'Valid Storage|SMcli failed' | awk '$0!~/^$/ {print $1}')"
+   return $rcode
+}
+check_md34() {
+  [[ -z $1 ]] && [[ -z $2 ]] && 'echo check_md34 not found $1 or $2 parameter'
+  smclioutput="/dev/shm/nrpe_c2babed0c4be41f6/found_md34xx_devices_$2"
+  
+  if [[ $1 == "dell" ]]
+  then  
+    SMcli localhost -n $2 -c "Show allVirtualDisks;show storageArray; Show allphysicalDisks summary;" > $smclioutput
+  fi
+  if [[ $1 == "lenovo" ]]
+  then  
+    SMcli -k $2  -u admin -P /opt/SMcli-01.50.00.9001/bin/password -c "show storageArray;" > $smclioutput
+  fi
+  if [[ $? -eq 0 ]]
+  then
+  awk 'BEGIN {
+    rcode2=0;} {
+    if(NF>10 && $0~/Disk Group/ && $0!~/Optimal/){
+         printf "Vol"$NF":"$3";"$4";"
+         rcode2=2
+    };
+    if($0~/mirroring/)
+    {
+       if($NF!~/Enabled/) {
+         printf "Cache mirror:"$NF";"
+         rcode2=2
+       }
+    };
+    if($0~/Battery status/) {
+       if($NF!~/Optimal/) {
+         printf "Batt:"$NF";"
+         rcode1=1
+      }
+    };
+    if ($0~/Power supply status/) {
+         if ($NF!~/Optimal/) {
+         printf "Power status:"$NF";"
+         rcode2=2
+         }
+    };
+    if ($0~/Fan Status/) {
+         if ($NF!~/Optimal/) {
+         printf "Fan status:"$NF";"
+         rcode2=2
+         }
+    };
+    if ($0~/Number of enclosures/) {
+         nenclo=$NF
+    };
+    if(($0!~/interface/) && ($0~/Solid State Disk.*SAS|Physical Disk.*SAS/)) {
+         if ($0~/Replaced/) {
+             printf " to resilvering:"$(NF-2),$(NF-1),$NF";"
+             rcode1=1
+         }
+         else if ($0!~/Optimal/) {
+             printf "%d %d %d %s %s %s;",$1,$2,$3,$4,$5,$(NF-2)
+             rcode2=2
+         }
+    }
+  } END{ if(rcode2==0 && rcode1==0) {
+      printf "MD34 is ok;"
+    } else if(rcode2==2) {
+      exit rcode2
+    } else if(rcode1==1) {
+      exit rcode1
+    }
+  }' $smclioutput
+  else
+     echo "SMcli not run"
+     return 2
+  fi
+}
+
+fusionraid() {
+  sas_bin=sas3ircu
+  if lsscsi  | grep MD34 > /dev/null
+  then
+     is_md34
+     rcode=$?
+     if [[ ! $rcode -eq 0 ]]
+     then
+        return $rcode
+     fi
+  fi
+  if lsscsi | grep "LENOVO   DE_Series" > /dev/null
+  then
+     is_e_ser
+     rcode=$?
+     if [[ ! $rcode -eq 0 ]]
+     then
+        return $rcode
+     fi
+  fi
+}
+
+psu_fan_status() {
+  ######### JBOD power fan status
+  export PATH=$PATH:/opt/dell/ServerHardwareManager/ServerHardwareManagerCLI/bin
+    if lsscsi -gis | grep -Ei "Array584|MD1280|DELL     EN-8435" > /dev/null
+    then
+         shmcli_output=$(timeout 90 shmcli list physical enclosures)
+         if echo "$shmcli_output" | grep -E '\w{16,16}' > /dev/null
+         then
+           all_shmout=$(echo "$shmcli_output" | awk 'NF < 4 {getline nextline; $0 = $0 nextline} 1' | awk '$0~/500/|| $0~/520/{print $3,$5}' | while read line
+           do
+             jbod_sn=$(echo $line| awk '{print $1}')
+             jbod_addr=$(echo $line| awk '{print $2}')
+             timeout 90 shmcli list power supplies -enc = $jbod_addr
+             [[ ! $? -eq 0 ]] && echo "list power error" && return 2
+             timeout 90 shmcli list fans -enc = $jbod_addr
+             [[ ! $? -eq 0 ]] && echo "list fan error" && return 2
+           done)
+           echo "$all_shmout" | awk '{gsub("Top","PS 0"); gsub("Bottom","PS 1");if($1~/jbod_serial/) {printf "jbod: "$2} ; if($1~/PS/) {if ($3!~/OK/ && NF>4) {printf $1" "$2" lost power "$3" ";rcode=2} }; if ($1 ~ /^[0-9]/ && $2!~/OK/ && NF>3){printf " fan "$1" stopped "$2" "; rcode=2}; } END{exit rcode}'
+           if [[ $? -eq 2 ]] 
+           then 
+             return 2
+           else
+             echo -n "shmcli PSU/Fan:OK;"
+           fi
+         else
+           echo "shmcli no output" 
+           return 1
+         fi
+    else
+      echo -n "no Dell JBOD;"
+    fi
+    lsscsi_output="$(lsscsi -gis | grep -Ei 'enclosu SMC +SC826|enclosu SMC +SC[0-9]|enclosu SMC94[0-9] +12|enclosu DELL +MD3060e|enclosu SMCI +JBOD-[B,T]O[T,P]|enclosu SMCDRS2U SAS3|enclosu Seagate|HP +D3700|enclosu HGST|enclosu WDC|enclosu LENOVO   D32845U' | awk '{print $(NF-1)}')"
+    if echo $lsscsi_output | grep dev\/sg > /dev/null
+    then
+      while read line
+      do
+          if [[ $line =~ sg ]]
+          then
+              if [[ -f /sys/class/scsi_generic/$(basename $line)/device/vpd_pg80 ]]
+              then
+                jbod_sn=$(strings /sys/class/scsi_generic/$(basename $line)/device/vpd_pg80 | tr -d '\040\011\012\015')
+                smc_output=$(/sbin/smc_enclo_tools $line | grep -vi unsupport | sed -e 's/:/ /g' -e 's/,/ /g' | grep -Ei 'PSU|Fan')
+                if [[ ! $? -eq 0 ]]
+                then
+                   echo "no SMC ouotput"
+                fi 
+              fi
+
+              if [[ $(echo "$smc_output" | grep -ci PSU) -ge 2 ]] && [[  $(echo "$smc_output" | grep -ci Fan) -ge 1 ]]
+              then
+                while read psu_status
+                do
+                  dev_name=$(echo $psu_status | cut -d" " -f1)
+                  dev_stat=$(echo $psu_status | cut -d" " -f2)
+                  echo -n "SMC OK;"
+                  if echo $dev_stat | grep -vi OK >/dev/null
+                  then
+                     echo -n "failed JBOD: $jbod_sn $dev_name $dev_stat;"
+                     return 2;
+                  fi
+                done <<<$(echo "$smc_output")
+              fi
+          else
+            echo " failed SMC dev: $line;"
+            return 1
+          fi
+      done <<<"$(echo "$lsscsi_output")"
+   else
+      echo -n "No SMC JBOD;"
+   fi
+}
+
+raidz() {
+    if cat /proc/filesystems | grep -o zfs > /dev/zero 2>&1
+    then
+      if zpool list | grep "no pools" > /dev/null
+      then
+          echo "no zfs;"; return 0;
+      fi
+
+      if modinfo zfs | grep zfs.ko -A 1 | grep -v 0.6 >/dev/zero
+      then
+        zpool get multihost | grep off; [[ $? -eq 1 ]] || set_rcode=2
+        zfs get quota | grep none; [[ $? -eq 1 ]] || set_rcode=2
+      fi
+      ######### zpool events
+      this_month=$(date '+%b')
+      this_day=$(date '+%d' | awk '{printf "%d\n",$1}')
+      this_hour=$(date +%H)
+      this_year=$(date +%Y)
+      zpoolevent=$(zpool events | grep -Ei "${this_month}\ +${this_day}.+${this_year}" | grep -Ec 'resilver_|scrub_')
+      if [[ $zpoolevent -gt 20 ]]
+      then
+        echo "too many resilvering/scrub" 
+        set_rcode=2
+      fi
+
+      ######### resilvering status
+      zpool_out="$(zpool status 2>/dev/null)"
+      res_code=0
+      if [[ -s /dev/shm/nrpe_c2babed0c4be41f6/zpool_resilvering ]]
+      then
+        if echo "$zpool_out" | grep resilvering > /dev/null
+        then
+          resilvering_t=$(stat -c%Z /dev/shm/nrpe_c2babed0c4be41f6/zpool_resilvering)
+          now_t=$(date +%s)
+          resilvering_timeo=$((now_t-resilvering_t)) 
+          if [[ $resilvering_timeo -gt 1728000 ]]
+          then
+            while read line
+            do
+              if grep "$line" /dev/shm/nrpe_c2babed0c4be41f6/zpool_resilvering > /dev/null
+              then
+                echo -n " $line "
+                res_code=2
+              fi
+            done <<< "$(echo "$zpool_out" | awk '/resilvering/ {print $1}')"
+
+            if [[ $res_code -eq 2 ]]
+            then
+              echo -n " resilvering timeout, critical;"
+              echo "$zpool_out" | awk '/resilvering/ {print $1}' > /dev/shm/nrpe_c2babed0c4be41f6/zpool_resilvering
+              return $res_code
+            fi
+          fi
+        else
+          echo -n $(cat /dev/shm/nrpe_c2babed0c4be41f6/zpool_resilvering) " resilvering completed; " && rm -f /dev/shm/nrpe_c2babed0c4be41f6/zpool_resilvering
+        fi
+      else 
+         if echo "$zpool_out" | grep resilvering > /dev/null
+         then
+            echo "$zpool_out" | awk '/resilvering/ {print $1}' > /dev/shm/nrpe_c2babed0c4be41f6/zpool_resilvering
+            if [[ $? -gt 0 ]]
+            then
+              echo "write zpool_resilvering failed"
+              res_code=2
+            fi
+         fi
+      fi
+
+      ########## raid status
+      echo "$zpool_out" | awk -v rcode=$rcode '{
+                if($0~/no pools available/) {exit 0};
+                if(tolower($0)~/pool:/) pname=$NF
+                else if(tolower($0)~/state:/ && $NF!="ONLINE") {
+                       pstat_rc=2; pstat=$NF; epool=pname
+                } else if (tolower($0)~/resilvering/) {
+                       rebu=1;epool=pname
+                }
+                else if($3~/^[[:digit:]]/ && $4~/^[[:digit:]]/ && $5~/^[[:digit:]]/) {
+                     if($3>0 || $4>0 || $5>0) {
+                        a[$1]=$3+$4+$5; epool=pname
+                               if(match($3,/[K,M,G,T,P]$/,m) || match($4,/[K,M,G,T,P]$/,m) || match($5,/[K,M,G,T,P]$/,m)) {
+                                  if(m[0]!=0 && m[0]+0==0) {cks_m=m[0];}
+                               }
+                     }
+               }
+       }
+       END{
+                        hddnum=0
+                        for (i in a) {
+                                if (a[i]>0) {
+                                        sum+=a[i]
+                                        hddnum++
+                               }
+                        }
+	                if (rebu==1) {
+                            printf " "epool" is resilvering "
+                            rcode=1
+                        } else {
+                            if (sum>15 || hddnum>0 || pstat_rc >=2 || length(cks_m) > 0) {
+                                   printf " "epool" "pstat";rw-cksum err:"sum""cks_m";err devs:"hddnum";"
+                                   rcode=2
+                            } else {
+                                   printf " raidz no error;"
+                                   rcode=0
+                            }
+                        }
+                        exit rcode
+        }'
+    fi
+    rcode=$?
+    if [[ $rcode -eq 2 ]] || [[ $set_rcode -eq 2 ]] || [[ $res_code -eq 2 ]]
+    then
+      return 2
+    else
+      return $rcode
+    fi
+}
+
+mdraid() { #there is no output in mdstat, not return error
+    if cat /proc/mdstat | grep -iE 'Personalities.*raid' > /dev/zero
+        then
+        cat /proc/mdstat | awk -F '[][ //]+' '
+                BEGIN {
+                COUNT=0;rcode=0
+                }
+                {
+                        if ($0~/U/)
+                        {
+                        LINES[COUNT]=$0
+                        COUNT++
+                        }
+                }
+                        END{
+                        for (j=0;j<=COUNT;j++)
+                        {
+                                        if (LINES[j]~/_/)
+                                        {
+                                                printf "SoftRaid [critical];"
+                                                rcode=2
+                                                break
+                                        }
+                        }
+                        if (rcode==0) {
+                                printf "SoftRaid [ok];"
+                        } else {
+                                exit rcode
+                        }
+                       }'
+    return $?
+    fi
+}
+
+Marvell() {
+    checkcmd mvcli
+    if mvcli info -o vd | grep functional >/dev/zero
+    then
+        echo -n "marvell raid is ok;"
+    else
+        echo -n "marvell raid degraded or conenct failed;"
+        return 2
+    fi
+}
+
+Adaptec() {
+    export PATH=$PATH:/usr/Arcconf
+    checkcmd arcconf
+    export PATH=$PATH:/usr/Arcconf
+    for i in $(arcconf LIST |  awk '$0~/Controller [0-9]/ {gsub(":","");print $2}')
+    do
+        output=$(arcconf getconfig $i)
+        if echo "$output" | grep "No logical devices configured" > /dev/null
+        then
+           echo -n "Adaptec: No logical devices configured; "
+        else
+           echo "$output" | grep -i "RAID level" | awk '$NF==0 {printf "Got raid0, check the config !!!"; exit 1}'
+           raidl=$?
+           echo "$output" | awk -v "con=$i" '{if($0~/Logical Device number /) {lov=$NF}; if($0~/Status of Logical Device/) { if($0~/Optimal/) {printf "con "con" lov-"lov": "$NF" "} else {printf "con "con" lov-"lov": "$NF" ";exit 2} }}'
+           rcode=$?
+        fi
+        echo "$output" | grep "Drive has stale RIS data" -B 1 | grep State | awk '$NF!~/Online/ && $NF!~/Ready/ && $NF!~/Hot-Spare/ {printf "Get adaptec bad dev: "$NF; exit 2}'
+        hbacode=$?
+        if [[ $rcode -gt 0 ]]
+        then
+           return $rcode
+        fi
+        if [[ $raidl -gt 0 ]]
+        then
+           return $raidl
+        fi
+        if [[ $hbacode -gt 0 ]]
+        then
+           return $hbacode
+        fi
+    done
+}
+
+function check_ibm_raid {
+  output=$(echo "$1")
+  stor_name=$2
+  [[ -z $stor_name ]] && stor_name="unknow name "
+  echo "$output" | awk -v stor_name=$stor_name 'BEGIN{IGNORECASE=1; printf stor_name" "}; $0~/^[0-9].*MDisk[0-9]/ || $0~/^[0-9].*mdisk[0-9]/ || $0~/^[0-9].*tier/ { if($0~/fail/ || $0~/offline/ || $0~/err/ || $0~/degra/ || $0~/criti/ || $0~/loss/ || $0~/bad/) {if(NR<14) {b[$1]=$2" "$3" "$4" "$5;} else {a[$1]=$2" "$3" "$4" "$5}} } END{if(length(a)>0) {for( i in a) {printf i" "a[i]";";}} else {printf " phy devs ok;"}; if(length(b)>0) {for( i in b) {printf i" "b[i]";";}} else {printf " logic devs ok;"}; if(length(a)>0 || length(b)>0) { exit 2}}'
+}
+
+Emulex() {
+    ## IBM TS4500
+if [[ $1 =~ "run_ts4500" ]] && [[ -f /opt/ibm/ltfsee/bin/eeadm ]]
+then
+### 5030 and v7000 checking
+  raid5000_log=$(cat /run/nrpe/raid_monitor.log)
+  ibm_rcode=$?
+  raid5000_time=$(stat -c%Z /run/nrpe/raid_monitor.log)
+  diff_time=$(($(date +%s)-raid5000_time))
+  raid_monitor=${diff_time#-}
+  if [[ $(echo "$raid5000_log" | grep -Eci "IBM_.*superuser") -lt 6 ]] || [[ $(echo "$raid5000_log" | wc -l) -lt 200 ]] || [[ $ibm_rcode -eq 2 ]] || [[ $raid_monitor -ge 172800 ]]
+  then
+    echo -n  $(echo "$raid5000_log" | grep -Eci "IBM_.*superuser") $(echo "$raid5000_log" | wc -l) $ibm_rcode $raid_monitor " IBM storage login/raid_monitor.log failed;";return 2
+  else
+    check_ibm_raid "$raid5000_log" "ibm_f5k"
+    [[ $? -ge 2 ]] && return 2
+  fi
+
+  if grep ltfs /proc/mounts > /dev/null
+  then
+     echo "$(/opt/ibm/ltfsee/bin/eeadm drive list; /opt/ibm/ltfsee/bin/eeadm tape list)" | awk '$0!~/Status.*State/{if($2!="ok") {print "degrade: "$1" "$2" "$3; exit 2 }}'
+     [[ $? -gt 0 ]] && return 2
+     /usr/lpp/mmfs/bin/mmhealth node show -a  | grep -Eiv "pool-data_high_error|Status Change     Reasons & Notices|no_disk_space_warn" | grep -Ei 'GPFS|NETWORK|FILESYSTEM|DISK|CES|FILEAUDITLOG|MSGQUEUE|PERFMON|THRESHOLD' | awk '$0!~/callhome_not_enabled/ {if($2=="HEALTHY") {tape_stat="ok;"} else {printf $0" "$1" "$2" "$NF";"; exit 2}} END{if(tape_stat=="ok") {printf " Tape: OK "}}'
+     if [[ $? -gt 0 ]] 
+     then
+       echo -n "eehealth error;" && return 2
+     fi
+  fi
+elif [[ $1 =~ "skip_ts4500" ]] && [[ -f /opt/ibm/ltfsee/bin/eeadm ]]
+then
+  echo -n " GPFS slave, skip;"
+  return 0
+elif [[ ! -f /opt/ibm/ltfsee/bin/eeadm ]]
+then
+  echo -n " IBM tape not define;"
+  return 2
+else
+  echo -n " Emulex HBA, no IBM tape;"
+fi
+}
+
+checkos() {
+  return $(uname -r | cut -f 1 -d '.')
+}
+
+
+check_infrequ () {
+hr=(megaraid hewlett-packard fusion marvell emulex adaptec)
+sr=(raid zfs)
+raidchip=()
+for ((i=0;i<${#hr[*]};i++))
+do
+    lspcivar=$(lspci | grep -Ei 'raid|scsi|sata|Fibre./*Channel' |  grep -io ${hr[$i]} | uniq)
+    raidchip+=($lspcivar)
+done
+for ((i=0;i<${#sr[*]};i++))
+do
+    lspcivar=$(lsmod |  grep -Eio ${sr[$i]} | uniq)
+    raidchip+=($lspcivar)
+done
+
+###echo -n "RAID type: "${raidchip[*]}" "
+###echo -n "-"${#raidchip[@]}"-"
+declare -A check_res_arr
+if [ ${#raidchip[@]} -eq 0 ]
+then
+    echo -n "Not reconnise sas/raid chip" && return 1
+else
+  for key in ${!raidchip[@]}
+  do
+    #echo "raidchip:"${raidchip[${key}]}
+    if [ -n "${raidchip[${key}]}" ]
+    then
+    case "$(echo ${raidchip[${key}]} | awk '{print tolower($0)}')" in
+    zfs)
+        raidz;
+        check_res_arr["zfs"]=$?
+    ;;
+    raid)
+        mdraid;
+        check_res_arr["mdraid"]=$?
+    ;;
+    megaraid)
+        storcli;
+        check_res_arr["megaraid"]=$?
+    ;;
+    hewlett-packard)
+        hpraid;
+        check_res_arr["hpe"]=$?
+    ;;
+    fusion)
+        fusionraid;
+        check_res_arr["fusion"]=$?
+    ;;
+    marvell)
+        Marvell;
+        check_res_arr["marvell"]=$?
+    ;;
+    adaptec)
+        Adaptec;
+        check_res_arr["adaptec"]=$?
+    ;;
+    emulex)
+        Emulex $1;
+        check_res_arr["emulex"]=$?
+    ;;
+    *)
+        echo -n "No raid chip"
+        return 3
+    ;;
+    esac
+    fi
+  done
+
+  psu_fan_status;
+  check_res_arr["psu_zfs"]=$?
+
+  for ak in "${!check_res_arr[@]}"
+  do
+    if [[ ! ${check_res_arr[$ak]} -eq 0 ]]
+    then
+       echo -n " err:$ak;"
+       return ${check_res_arr[$ak]}
+    fi
+  done
+fi
+}
+
+checkallout() {
+    rcode=$(tail -n 1 $timestamp)
+    head -n 1 $timestamp
+    return $rcode
+}
+
+[[ ! -d /dev/shm/nrpe_c2babed0c4be41f6 ]] && mkdir /dev/shm/nrpe_c2babed0c4be41f6
+export timestamp="/dev/shm/nrpe_c2babed0c4be41f6/timestamp-e737b99c29f1"
+
+input_msg="none"
+time_interval=43200
+
+if [[ $# -eq 1 ]]
+then
+  if [[ $1 -eq $1 ]]
+  then
+    time_interval=$1
+  else
+    input_msg="$1"
+  fi
+fi
+
+if [[ $# -eq 2 ]]
+then
+  time_interval=$1
+  input_msg=$2
+fi
+
+time_now=$(date +%s)
+filetime=$(stat -c%Z $timestamp)
+diffval=$((time_now-filetime))
+
+[[ -f $timestamp ]] && [[ ${diffval#-} -lt $time_interval ]] && checkallout
+rcode=$?
+
+#echo -n "time_now:"$time_now" filetime:"$filetime "time_now - filetime: "${diffval#-} "time_interval:"$time_interval
+
+if [[ ! -f $timestamp ]] || [[ ${diffval#-} -ge $time_interval ]]
+then
+    check_infrequ $input_msg > $timestamp
+    rcode=$?
+    if [[ -z $rcode ]]
+    then
+       rcode=2
+    fi
+    echo >> $timestamp
+    echo $rcode >> $timestamp && checkallout
+fi
+exit $rcode
+
+#### 2018
+#### 4-14, support monitor MD3460
+#### 8-29, fix bug to monitor MD3460
+#### 8-30, Support MD3420, there is little diff format output in MD3420
+#### 8-30, Loop md3460, found single error not exit, error code will be clean
+#### 2-3, If not detect MD34xx, not running md34xx check scripts
+#### 5-15, Fix a zfs monitor bug
+#### 5-31, Fix md3460 return 1
+#### 10-24, Fix single md34xx in interactive mode and not return
+#### 11-06, If the script could not found the raid chip or kernel module, it will return 1, not 2, tangshicheng report
+#### 11-06, Add Dell boss adapter monitor
+#### 11-06, Add Dell PERC adapter monitor, it could not monitor by storcli,tangshicheng report
+#### 11-08, Add HPE HBA raid support, fix bug about the adapter has no capacitor
+#### 12-21, Found the diff about Dell LSI raid and Dell MD raidzpool status -x output ost name
+#### 12-21, Zpool status -x output ost name
+#### 12-21, Zpool supsend will return critical caution
+#### 2019
+#### 19-01-07, delete md342 funtion, the issue has been resolved
+#### 19-01-08, fix hpasscli spare
+#### 19-02-02, because zfssz6 node exec "sas3ircu list" too slow, first scan will output to /dev/shm
+#### 19-03-25, add dmesg log analysis, output sasxircu list > /dev/shm, if the server has no HBA internal RAID, just check once
+#### 19-03-26, if multihost=off ,exit 2
+#### 19-04-08, Add ecc and crc monitor
+#### 19-04-25, Patch hpe hba check
+#### 19-04-29, Tangshicheng report bug ,add LSI 2208 support , and dmesg -T not support centos 6
+#### 19-05-05, HPE check slot number only once, modify ecc monitor
+#### 19-05-21, monitor soft lockup log
+#### 19-06-18, update infortrend monitor for lustretj, and fix marvell monitor not work, update warn error message from dmesg
+#### 19-08-19, Add page allocation failure
+#### 19-08-30, Add ipmi error log check
+#### 19-10-31, Add check dmesg ecc error
+#### 19-12-10, Fix zpool bug, return  resilvering status
+#### 19-12-11, After hotspare the resilvering, the script will not warn, fix it
+#### 19-12-18, Add set time interval function
+#### 19-12-18, Add set time interval function
+#### 20-05-18, The show zfs resilvering status and the detect mmp status were not work ,fix them in raidz
+#### 20-06-06, fix some bugs for output, when md34xx rebuild complete and got the bad device,
+####           replace sasxircu to monitor internal raid by storcli
+#### 20-06-22, Add check smartd error
+#### 20-07-07, Fix some of bugs, make sure the corrrect results
+#### 20-07-21, Update the ipmi issue
+#### 20-08-14, fix the wrong megaraid logiv volume name
+#### 20-08-14, to avoid zfs #9004
+#### 20-10-01, Show medium error
+#### 20-11-02, Add multicheck for openzfs
+#### #2021-08 after spare rebuild complete, the script will show the failed disk
+#### Only check LSI fusion-mpt SAS raid volumn, It will not mix with JBOD mode
+#### Switch to strocli, no support megacli, monitor BBU
+#### Switch to hpssacli, no support hpacucli, monitor BBU and Temperature
+#### Openzfs: check read and write error repalce raid volume status
+#### 21-01-14, dmesg return 3
+#### 21-01-25, add ibm tape lib status monitor
+#### 21-01-28, fix dmesg output
+#### 21-02-07, modify GPFS health output, not report data high
+#### 21-04-23, CPU throttled warnning
+#### 21-09-22, Add DEGRADE/REMOVED/UNAVAIL status 
+#### 21-10-13, Add ost unhealthly
+#### 21-10-19, fix tape monitor error
+#### 21-10-25, remove the key info
+#### 21-12-06, dmesg return code override by ipmi return code
+#### 21-12-20, resilvering timeout
+#### 21-12-23, fix dmesg match err
+#### 21-12-31, count IO error each hour
+#### 22-02-10, Return the right zpool name
+#### 22-02-28, If the zpool is reslivering, not show error
+#### 22-03-18, Add adaptec logic volum support, not support HBA mode
+#### 22-06-08, Add Dell Fan and PSU status, add return value
+#### 22-06-10, Remove the shmcli hba_index
+#### 22-07-04, Add the Fan and PSU status for the supermicro JBOD and the server
+#### 22-07-19, If IBM stroage login failed, return error
+#### 22-07-22, Unify the supermicro SMC models for SCSI generic name
+#### 22-08-08, Fixed PSU monitor failed
+#### 22-08-11, Keep the raid monitor, the others go to check_status.sh
+#### 22-08-18, Fix PSU monitor issue
+#### 22-08-19, The bad system time be corrected will cause the monitor not work in a long time, fixed
+#### 22-09-28, Update master and slave mode for IBM ts4500
+#### 22-10-21, Add the new model storage monitor for GPFS
+#### 22-12-05, Fix the not warnning because the counter show the unit

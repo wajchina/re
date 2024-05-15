@@ -1,0 +1,18 @@
+{{ ansible_managed | comment }}
+
+#'check_nrpe ' command definition
+define command{
+        command_name    check_nrpe
+        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$ -t 300
+}
+
+# for alarm upgrade
+define command{
+        command_name re-notify-service
+        command_line /bin/echo -e "alarm_from: {{ REGION }} nagios service\n alarm_type: $NOTIFICATIONTYPE$\n alarm_service: $SERVICEDESC$\n hostname: $HOSTNAME$\n hostname_alias: $HOSTALIAS$\n service_status: $SERVICESTATE$\n alarm_time: $LONGDATETIME$\n addition_info: $SERVICEOUTPUT$\n" | /bin/mail -s "** $NOTIFICATIONTYPE$ Server Alert: $HOSTNAME$ is $HOSTSTATE$ **" $CONTACTEMAIL$
+}
+
+define command{
+        command_name re-notify-host
+        command_line /bin/echo -e "alarm_from: {{ REGION }} nagios host\n alarm_type: $NOTIFICATIONTYPE$\n hostname: $HOSTNAME$\n State: $HOSTSTATE$\n host_status: $HOSTOUTPUT$\n alarm_time: $LONGDATETIME$"\n | /bin/mail -s "** $NOTIFICATIONTYPE$ Host Alert: $HOSTNAME$ is $HOSTSTATE$ **" $CONTACTEMAIL$
+}

@@ -1,0 +1,37 @@
+---
+
+- name: run | Create grendel volume if it does not exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ grendel_volume }}/etc"
+    - "{{ grendel_volume }}/opt/sync"
+    - "{{ grendel_volume }}/templates"
+  tags:
+    - grendel_run
+    - run
+
+- name: run | Create grendel container
+  community.docker.docker_container:
+    name: grendel
+    image: "{{ grendel_image_name }}:{{ grendel_image_tag }}"
+    command: /grendel serve --debug --verbose -c /etc/grendel/grendel.toml --hosts /etc/grendel/hosts.json --images /etc/grendel/images.json
+    state: present
+    recreate: true
+    network_mode: host
+    restart_policy: "no"
+    volumes:
+      - "{{ path_for_ubuntu_iso_file }}:{{ path_for_ubuntu_iso_file }}:Z"
+      - "{{ grendel_volume }}/etc:/etc/grendel:Z"
+      - "{{ grendel_volume }}/opt:/opt/grendel:Z"
+      - "{{ grendel_volume }}/templates:/var/lib/grendel/templates:Z"
+    capabilities:
+      - CAP_NET_BIND_SERVICE
+      - CAP_NET_RAW
+  tags:
+    - grendel_run
+    - run
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"

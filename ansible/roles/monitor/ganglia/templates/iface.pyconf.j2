@@ -1,0 +1,105 @@
+{{ ansible_managed | comment }}
+
+# iface module
+modules {
+  module {
+    name = 'iface'
+    language = 'python'
+  }
+}
+
+collection_group {
+  collect_every = 15
+  time_threshold = 45
+
+  # The plugin gathers metrics for all interfaces and for all the counters
+  # of the /proc/net/dev file. if you want to enable more interfaces or more
+  # counters add a metric and change the name to match the interface, way and
+  # counter you want to monitor :
+  #
+  #   metric_name ::= "iface_<iface>_<way>_<counter>"
+  #   iface ::= lo|ethX|bondX|tunX|...
+  #   way ::= rx|tx
+  #   counter ::= bytes|packets|errs|drop|fifo|frame|compressed|multicast
+  #
+  # e.g. :
+  #
+  #   - iface_bond0_rx_frame
+  #   - iface_tun2_tx_fifo
+
+  # loopback
+  metric {
+    name = "iface_lo_rx_bytes"
+    title = "loopback RX bytes"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_lo_rx_packets"
+    title = "loopback RX packets"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_lo_tx_bytes"
+    title = "loopback TX bytes"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_lo_tx_packets"
+    title = "loopback TX packets"
+    value_threshold = 1.0
+  }
+
+{% if ganglia_iface is defined %}
+  # {{ ganglia_iface }}
+  metric {
+    name = "iface_{{ ganglia_iface }}_rx_bytes"
+    title = "{{ ganglia_iface }} RX bytes"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_{{ ganglia_iface }}_rx_packets"
+    title = "{{ ganglia_iface }} RX packets"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_{{ ganglia_iface }}_rx_errs"
+    title = "{{ ganglia_iface }} RX errors"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_{{ ganglia_iface }}_rx_drop"
+    title = "{{ ganglia_iface }} RX drop"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_{{ ganglia_iface }}_tx_bytes"
+    title = "{{ ganglia_iface }} TX bytes"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_{{ ganglia_iface }}_tx_packets"
+    title = "{{ ganglia_iface }} TX packets"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_{{ ganglia_iface }}_tx_errs"
+    title = "{{ ganglia_iface }} TX errors"
+    value_threshold = 1.0
+  }
+
+  metric {
+    name = "iface_{{ ganglia_iface }}_tx_drop"
+    title = "{{ ganglia_iface }} TX drop"
+    value_threshold = 1.0
+  }
+{% endif %}
+}

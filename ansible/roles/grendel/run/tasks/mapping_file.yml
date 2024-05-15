@@ -1,0 +1,95 @@
+---
+
+- name: mapping_file | Create required directory
+  block:
+    - name: mapping_file | Create temp if it does not exist
+      ansible.builtin.file:
+        path: "{{ mapping_file_temp }}"
+        state: directory
+        mode: '0755'
+    - name: mapping_file | Create kickstart templates directory if it does not exist
+      ansible.builtin.file:
+        path: "../inputs/{{ REGION }}/_files/templates"
+        state: directory
+        mode: '0755'
+  tags:
+    - grendel_run
+    - mapping_file
+
+- name: mapping_file | Generate grendel configuration
+  block:
+    - name: mapping_file | Generate grendel grendel.toml
+      ansible.builtin.template:
+        src: grendel.toml.j2
+        dest: "../inputs/{{ REGION }}/_files/grendel.toml"
+        mode: 0644
+    - name: mapping_file | Generate grendel hosts.json
+      ansible.builtin.template:
+        src: grendel_hosts.json.j2
+        dest: "../inputs/{{ REGION }}/_files/hosts.json"
+    - name: mapping_file | Generate grendel images.json
+      ansible.builtin.template:
+        src: grendel_images.json.j2
+        dest: "../inputs/{{ REGION }}/_files/images.json"
+        mode: '0644'
+  tags:
+    - grendel_run
+    - mapping_file
+
+- name: mapping_file | Generate hosts to temp directory
+  block:
+    - name: mapping_file | Generate hosts.new
+      ansible.builtin.template:
+        src: hosts_new.j2
+        dest: "{{ mapping_file_temp }}/hosts.new"
+        mode: '0644'
+    - name: mapping_file | Generate hosts
+      ansible.builtin.template:
+        src: hosts.j2
+        dest: "{{ mapping_file_temp }}/hosts"
+        mode: '0644'
+  tags:
+    - grendel_run
+    - mapping_file
+
+- name: mapping_file | Import hosts from hosts.new
+  block:
+    - name: mapping_file | Insert hosts.new
+      ansible.builtin.blockinfile:
+        path: "{{ mapping_file_temp }}/hosts"
+        insertafter: '^# import grendel hosts here'
+        block: |
+           {{ item }}
+        marker: "#GRENDEL BLOCK OF {{ item.split(',')[0] }} {mark}"
+      with_lines: "cat {{ mapping_file_temp }}/hosts.new"
+      ignore_errors: true
+    - name: mapping_file | Remove blank lines blockinfile put in
+      ansible.builtin.lineinfile:
+        path: "{{ mapping_file_temp }}/hosts"
+        state: absent
+        regexp: "^#GRENDEL"
+  tags:
+    - grendel_run
+    - mapping_file
+
+- name: mapping_file | Import hosts from etc_hosts_local
+  block:
+    - name: mapping_file | Insert etc_hosts_local
+      ansible.builtin.blockinfile:
+        path: "{{ mapping_file_temp }}/hosts"
+        insertafter: '^# import etc_hosts_local here'
+        block: "{{ etc_hosts_local }}"
+        marker: "#{mark} etc_hosts_local"
+      ignore_errors: true
+  tags:
+    - grendel_run
+    - mapping_file
+
+- name: mapping_file | Copy hosts from temp to files
+  ansible.builtin.copy:
+    src: "{{ mapping_file_temp }}/hosts"
+    dest: "../inputs/{{ REGION }}/_files/hosts"
+  tags:
+    - grendel_run
+    - mapping_file
+

@@ -1,0 +1,52 @@
+---
+
+- name: assert | Test if nexus_container is set correctly
+  ansible.builtin.assert:
+    that:
+      - nexus_container is defined
+      - nexus_container is string
+      - nexus_container is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if nexus_port is set correctly
+  ansible.builtin.assert:
+    that:
+      - nexus_port is defined
+      - nexus_port is number
+      - nexus_port > 0
+      - nexus_port < 65536
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if nexus_image is set correctly
+  ansible.builtin.assert:
+    that:
+      - nexus_image is defined
+      - nexus_image is string
+      - nexus_image is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if nexus_version is set correctly
+  ansible.builtin.assert:
+    that:
+      - nexus_version is defined
+      - nexus_version is string
+      - nexus_version is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if path_for_re_raw_file is set correctly
+  ansible.builtin.assert:
+    that:
+      - path_for_re_raw_file is defined
+      - path_for_re_raw_file is string
+      - path_for_re_raw_file is not none
+    quiet: yes
+  tags:
+    - assert

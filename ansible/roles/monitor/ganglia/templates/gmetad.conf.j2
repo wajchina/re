@@ -1,0 +1,22 @@
+{{ ansible_managed | comment }}
+
+# User gmetad will setuid to (defaults to "nobody")
+setuid_username {{ ganglia_config_user }}
+
+# grid name
+{% if ganglia_config_gmetad.grid_name is defined %}
+gridname "{{ ganglia_config_gmetad.grid_name }}"
+{% endif %}
+
+{% for ds in ganglia_config_gmetad.data_sources %}
+data_source "{{ ds.name }}" {{ ds.server_port|join(" ") }}
+{% endfor %}
+
+# Rocks custom RRA policy
+# new default policy are 20MB per node
+# this policy are 3M per node
+#
+# 10 hours at 15 sec resolution, 24 hours at 60 sec resolution, 7.2 days at 4.25 min resolution,
+# 28 days at 16 min resolution, 3740 days at 2.4 hours resolution
+RRAs "RRA:AVERAGE:0.5:1:2440" "RRA:AVERAGE:0.5:4:1440" "RRA:AVERAGE:0.5:17:2440" "RRA:AVERAGE:0.5:67:2440" \
+       "RRA:AVERAGE:0.5:576:3740"

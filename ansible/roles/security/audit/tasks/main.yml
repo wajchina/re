@@ -1,0 +1,4 @@
+---
+
+- name: Import history
+  ansible.builtin.import_tasks: history.yml

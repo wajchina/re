@@ -1,0 +1,17 @@
+---
+
+# Verify token value with the sysctl command and set with -w if necessary
+sysctl_set: yes
+
+# if yes, performs a /sbin/sysctl -p if the sysctl_file is updated.
+# If no, does not reload sysctl even if the sysctl_file is updated
+sysctl_reload: yes
+
+# Set defaults
+sysctl_items:
+  - name: fs.file-max
+    value: 15000000
+  - name: vm.swappiness
+    value: 5
+  - name: sunrpc.tcp_max_slot_table_entries
+    value: 128

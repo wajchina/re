@@ -1,0 +1,278 @@
+{{ ansible_managed | comment }}
+
+/* Global Configuration */
+{% if ganglia_config_gmond.globals is defined %}
+globals {
+	daemonize = yes
+	setuid = yes
+	user = {{ ganglia_config_user }}
+	debug_level = 0
+	max_udp_msg_len = 1472
+{% if ganglia_config_gmond.globals.mute is defined %}
+  	mute = {{ ganglia_config_gmond.globals.mute }}
+{% endif %}
+{% if is_gmond_proxy is defined or is_gmetad_server is defined and is_gmetad_server %}
+	deaf = no
+{% elif ganglia_config_gmond.globals.deaf is defined %}
+  	deaf = {{ ganglia_config_gmond.globals.deaf }}
+{% else %}
+	deaf = yes
+{% endif %}
+{% if ganglia_config_gmond.globals.host_dmax is defined %}
+  	host_dmax = {{ ganglia_config_gmond.globals.host_dmax }}
+{% endif %}
+	cleanup_threshold = 300 /* secs */
+	gexec = no
+	send_metadata_interval = 180 /* secs */
+}
+{% endif %}
+
+/* Cluster Specific attributes */
+cluster {
+	name = "{{ ganglia_config_gmond.data_sources.name }}"
+	owner = "{{ ganglia_config_owner }}"
+	latlong = "{{ ganglia_config_latlong }}"
+	url = "{{ ganglia_config_url }}"
+}
+
+/* Host configuration */
+host {
+# TODO set location to it's real rack position
+	location="unspecified"
+}
+
+/* UDP Channels for Send and Recv */
+udp_recv_channel {
+	port = {{ ganglia_config_gmond.data_sources.port }}
+}
+
+{% for gs in ganglia_config_gmond.data_sources.servers %}
+udp_send_channel {
+    host = {{ gs }}
+    port = {{ ganglia_config_gmond.data_sources.port }}
+}
+{% endfor %}
+
+/* TCP Accept Channel */
+tcp_accept_channel {
+{% if ganglia_config_gmond.data_sources.port is defined %}
+	port = {{ ganglia_config_gmond.data_sources.port }}
+{% endif %}
+
+	acl {
+		default = "deny"
+
+{% if ganglia_config_gmond.acl_allow is defined %}
+{% for acl_allow in ganglia_config_gmond.acl_allow %}
+		access {
+			ip = {{ acl_allow.ip }}
+			mask = {{ acl_allow.mask }}
+			action = "allow"
+		}
+{% endfor %}
+{% endif %}
+
+	}
+}
+
+/* Modules */
+modules {
+	module {
+		name = "core_metrics"
+	}
+
+	module {
+		name = "cpu_module"
+		path = "modcpu.so"
+	}
+
+	module {
+		name = "disk_module"
+		path = "moddisk.so"
+	}
+
+	module {
+		name = "load_module"
+		path = "modload.so"
+	}
+
+	module {
+		name = "mem_module"
+		path = "modmem.so"
+	}
+
+	module {
+		name = "net_module"
+		path = "modnet.so"
+	}
+
+	module {
+		name = "proc_module"
+		path = "modproc.so"
+	}
+
+	module {
+		name = "sys_module"
+		path = "modsys.so"
+	}
+
+	module {
+		name = "python_module"
+		path = "modpython.so"
+		params = "/usr/lib64/ganglia/python_modules"
+	}
+}
+
+/* Metrics Collection group */
+collection_group {
+	collect_every = 60
+	time_threshold = 300
+	metric {
+		name = "location"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "load_one"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "mem_total"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_intr"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "proc_run"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "load_five"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "disk_free"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "mem_cached"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "mtu"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_sintr"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "pkts_in"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "bytes_in"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "bytes_out"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "swap_total"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "mem_free"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "load_fifteen"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "boottime"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_idle"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_aidle"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_user"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_nice"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "sys_clock"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "mem_buffers"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_system"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "part_max_used"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "disk_total"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "heartbeat"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "mem_shared"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "machine_type"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_wio"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "proc_total"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_num"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "cpu_speed"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "pkts_out"
+		value_threshold = 10.0
+	}
+	metric {
+		name = "swap_free"
+		value_threshold = 10.0
+	}
+	metric{
+		name = 'os_name'
+	}
+	metric{
+		name = 'os_release'
+	}
+}
+
+include ('/etc/ganglia/conf.d/*.pyconf')

@@ -1,0 +1,42 @@
+---
+
+- name: assert | Test if nagios_container is set correctly
+  ansible.builtin.assert:
+    that:
+      - nagios_container is defined
+      - nagios_container is string
+      - nagios_container is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if nagios_port is set correctly
+  ansible.builtin.assert:
+    that:
+      - nagios_port is defined
+      - nagios_port is number
+      - nagios_port > 0
+      - nagios_port < 65536
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if nagios_image is set correctly
+  ansible.builtin.assert:
+    that:
+      - nagios_image is defined
+      - nagios_image is string
+      - nagios_image is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if nagios_version is set correctly
+  ansible.builtin.assert:
+    that:
+      - nagios_version is defined
+      - nagios_version is string
+      - nagios_version is not none
+    quiet: yes
+  tags:
+    - assert

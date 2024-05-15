@@ -1,0 +1,14 @@
+---
+
+- name: Import assert.yml
+  ansible.builtin.import_tasks: assert.yml
+  run_once: yes
+  delegate_to: localhost
+  tags:
+    - repository
+
+- name: Import centos 7 yum repository
+  ansible.builtin.import_tasks: yum_centos7.yml
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+  tags:
+    - repository

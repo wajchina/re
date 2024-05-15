@@ -1,0 +1,29 @@
+{% raw %}
+#cloud-config
+autoinstall:
+  apt:
+    disable_components: []
+    fallback: offline-install
+    geoip: true
+    preserve_sources_list: false
+  version: 1
+  keyboard:
+    layout: us
+  locale:
+    en_US.UTF-8
+  identity:
+    hostname: "{{ .nic.FQDN }}"
+    username: ubuntu
+    password: "$6$exDY1mhS4KUYCE/2$zmn9ToZwTKLhCw.b4/b.ZRTIZM30JZ4QrOQ2aOXJ8yk96xpcCof0kxKwuX1kqLG/ygbJ1f8wxED22bTL4F46P0"
+  ssh:
+    allow-pw: no
+    install-server: yes
+  user-data:
+    disable_root: false
+  late-commands:
+    - curl -X POST {{ .complete }}
+{{- with .rootpw }}
+    - curtin in-target --target=/target -- usermod -p '{{ . }}' root
+{{ end }}
+
+{% endraw %}

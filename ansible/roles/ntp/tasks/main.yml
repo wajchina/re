@@ -1,0 +1,42 @@
+---
+
+- name: import assert.yml
+  ansible.builtin.import_tasks: assert.yml
+  run_once: yes
+  delegate_to: localhost
+  tags: ntp
+
+- name: install packages
+  ansible.builtin.package:
+    name: "{{ ntp_packages }}"
+    state: present
+  tags: ntp
+
+- name: configure /etc/{{ ntp_configuration_file }}
+  ansible.builtin.template:
+    src: "{{ ntp_configuration_file }}.j2"
+    dest: /etc/{{ ntp_configuration_file }}
+    mode: "0644"
+  notify:
+    - Restart ntp
+  tags: ntp
+
+- name: install timezone information
+  ansible.builtin.package:
+    name: "{{ ntp_timezone_packages }}"
+    state: present
+  tags: ntp
+
+- name: configure timezone
+  community.general.timezone:
+    name: "{{ ntp_timezone }}"
+  when:
+    - ntp_timezone_supported | bool
+  tags: ntp
+
+- name: manage {{ ntp_service }}
+  ansible.builtin.service:
+    name: "{{ ntp_service }}"
+    state: "{{ ntp_state }}"
+    enabled: "{{ ntp_enabled }}"
+  tags: ntp

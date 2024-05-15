@@ -1,0 +1,122 @@
+---
+
+- name: yum_repository | Modify CentOS-Base repo
+  ansible.builtin.yum_repository:
+    name: base
+    description: CentOS-$releasever - Base
+    file: CentOS-Base
+    mirrorlist: http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os&infra=$infra
+    enabled: no
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  tags: yum_repository
+
+- name: yum_repository | Modify CentOS-updates repo
+  ansible.builtin.yum_repository:
+    name: updates
+    description: CentOS-$releasever - Updates
+    file: CentOS-Base
+    mirrorlist: http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=updates&infra=$infra
+    enabled: no
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  tags: yum_repository
+
+- name: yum_repository | Modify CentOS-extras repo
+  ansible.builtin.yum_repository:
+    name: extras
+    description: CentOS-$releasever - Extras
+    file: CentOS-Base
+    mirrorlist: http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=extras&infra=$infra
+    enabled: no
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-CentOS-Base repo
+  ansible.builtin.yum_repository:
+    name: nexus-centos-base
+    description: Nexus-CentOS-$releasever - Base
+    file: nexus-centos
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/centos/$releasever/os/$basearch/
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-CentOS-Updates repo
+  ansible.builtin.yum_repository:
+    name: nexus-centos-updates
+    description: Nexus-CentOS-$releasever - Updates
+    file: nexus-centos
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/centos/$releasever/updates/$basearch/
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-CentOS-Extras repo
+  ansible.builtin.yum_repository:
+    name: nexus-centos-extras
+    description: Nexus-CentOS-$releasever - Extras
+    file: nexus-centos
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/centos/$releasever/extras/$basearch/
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-CentOS-Plus repo
+  ansible.builtin.yum_repository:
+    name: nexus-centos-centosplus
+    description: Nexus-CentOS-$releasever - Plus
+    file: nexus-centos
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/centos/$releasever/centosplus/$basearch/
+    enabled: no
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-CentOS-Debug repo
+  ansible.builtin.yum_repository:
+    name: nexus-centos-debuginfo
+    description: Nexus-CentOS-$releasever - Debug
+    file: nexus-centos
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/centos-debuginfo/7/$basearch/
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-Debug-7
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-EPEL repo
+  ansible.builtin.yum_repository:
+    name: nexus-epel
+    description: Extra Packages for Enterprise Linux 7 - $basearch
+    file: nexus-epel
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/7/$basearch/
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/RPM-GPG-KEY-EPEL-7
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-EPEL-Debug repo
+  ansible.builtin.yum_repository:
+    name: nexus-epel-debuginfo
+    description: Extra Packages for Enterprise Linux 7 - $basearch - Debug
+    file: nexus-epel
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/7/$basearch/debug
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/RPM-GPG-KEY-EPEL-7
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-EPEL-Source repo
+  ansible.builtin.yum_repository:
+    name: nexus-epel-source
+    description: Extra Packages for Enterprise Linux 7 - $basearch - Source
+    file: nexus-epel
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/7/source/tree/
+    enabled: no
+    gpgcheck: yes
+    gpgkey: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/RPM-GPG-KEY-EPEL-7
+  tags: yum_repository

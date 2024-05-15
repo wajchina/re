@@ -1,0 +1,70 @@
+{{ ansible_managed | comment }}
+
+# listen ports
+http_port {{ squid_port }}
+
+# 
+acl SSL_ports port 443
+acl Safe_ports port 80          # http
+acl Safe_ports port 21          # ftp
+acl Safe_ports port 443         # https
+acl Safe_ports port 70          # gopher
+acl Safe_ports port 210         # wais
+acl Safe_ports port 1025-65535  # unregistered ports
+acl Safe_ports port 280         # http-mgmt
+acl Safe_ports port 488         # gss-http
+acl Safe_ports port 591         # filemaker
+acl Safe_ports port 777         # multiling http
+acl CONNECT method CONNECT
+
+# Deny requests to certain unsafe ports
+http_access deny !Safe_ports
+
+# Deny CONNECT to other than secure SSL ports
+http_access deny CONNECT !SSL_ports
+
+{% if squid_acls is defined %}
+{% for acl in squid_acls %}
+acl {{ acl.name }} {{ acl.classifier }} {{ acl.value }}
+{% endfor %}
+{% endif %}
+
+{% if squid_rules is defined %}
+{% for rule in squid_rules %}
+http_access {{ rule.decision }} {{ rule.acl }}
+{% endfor %}
+{% endif %}
+
+{% if squid_http_access is defined %}
+{% for http_access in squid_http_access %}
+http_access {{ http_access.state }} {{ http_access.acls | join(' ') }}
+{% endfor %}
+{% endif %}
+
+# And finally deny all other access to this proxy
+http_access deny all
+
+cache_dir {{ squid_cache_dir }}
+
+coredump_dir /var/spool/squid
+
+refresh_pattern ^ftp:		1440	20%	10080
+refresh_pattern ^gopher:	1440	0%	1440
+refresh_pattern -i (/cgi-bin/|\?) 0	0%	0
+refresh_pattern .		0	20%	4320
+
+{% if squid_cache_replacement_policy is defined %}
+cache_replacement_policy {{ squid_cache_replacement_policy }}
+{% endif %}
+
+{% if squid_maximum_object_size_mb is defined %}
+maximum_object_size {{ squid_maximum_object_size_mb }} MB
+{% endif %}
+
+{% if squid_logformat is defined %}
+logformat {{ squid_logformat }}
+{% endif %}
+
+{% if squid_access_log is defined %}
+access_log {{ squid_access_log }}
+{% endif %}

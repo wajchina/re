@@ -1,0 +1,37 @@
+---
+
+_ntp_packages:
+  default:
+    - ntp
+  RedHat-6:
+    - ntp
+  RedHat:
+    - chrony
+
+ntp_packages: "{{ _ntp_packages[ansible_os_family ~ '-' ~ ansible_distribution_major_version] | default(_ntp_packages[ansible_os_family] | default(_ntp_packages['default'] )) }}"
+
+_ntp_configuration_file:
+  default: ntp.conf
+  RedHat-6: ntp.conf
+  RedHat: chrony.conf
+
+ntp_configuration_file: "{{ _ntp_configuration_file[ansible_os_family ~ '-' ~ ansible_distribution_major_version] | default(_ntp_configuration_file[ansible_os_family] | default(_ntp_configuration_file['default'] )) }}"
+
+_ntp_service:
+  default: ntpd
+  RedHat-6: ntpd
+  RedHat: chronyd
+
+ntp_service: "{{ _ntp_service[ansible_os_family ~ '-' ~ ansible_distribution_major_version] | default(_ntp_service[ansible_os_family] | default(_ntp_service['default'] )) }}"
+
+_ntp_timezone_packages:
+  default:
+    - tzdata
+
+ntp_timezone_packages: "{{ _ntp_timezone_packages[ansible_os_family] | default(_ntp_timezone_packages['default'] ) }}"
+
+_ntp_timezone_supported:
+  default: no
+  RedHat: yes
+
+ntp_timezone_supported: "{{ _ntp_timezone_supported[ansible_os_family] | default(_ntp_timezone_supported['default'] ) }}"

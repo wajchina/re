@@ -1,0 +1,26 @@
+---
+
+# cpp is required by sge to check system arch
+- name: sge_requirement | Install cpp package
+  ansible.builtin.yum:
+    name: cpp
+    state: present
+  tags: sge_requirement
+
+- name: sge_requirement | Create sge group
+  group:
+    name: "{{ admin_user }}"
+    system: yes
+    state: present
+  tags: sge_requirement
+
+- name: sge_requirement | Create sge user
+  user:
+    name: "{{ admin_user }}"
+    system: yes
+    state: present
+    home: "{{ sge_root }}"
+    shell: /bin/true
+    group: "{{ admin_user }}"
+    comment: "GridEngine System account"
+  tags: sge_requirement

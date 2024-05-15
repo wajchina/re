@@ -1,0 +1,63 @@
+---
+
+- name: firewall | Permit traffic in default zone on port 80/tcp
+  ansible.builtin.firewalld:
+    port: 80/tcp
+    permanent: true
+    state: enabled
+  tags:
+    - grendel_build
+    - firewall
+
+- name: firewall | Permit traffic in default zone on port 443/tcp
+  ansible.builtin.firewalld:
+    port: 443/tcp
+    permanent: true
+    state: enabled
+  tags:
+    - grendel_build
+    - firewall
+
+- name: firewall | Permit traffic in default zone for dhcp service
+  ansible.builtin.firewalld:
+    service: dhcp
+    permanent: true
+    state: enabled
+  tags:
+    - grendel_build
+    - firewall
+
+- name: firewall | Permit traffic in default zone on port 69/tcp for tftp
+  ansible.builtin.firewalld:
+    port: 69/tcp
+    permanent: true
+    state: enabled
+  tags:
+    - grendel_build
+    - firewall
+
+- name: firewall | Permit traffic in default zone on port 69/udp for tftp
+  ansible.builtin.firewalld:
+    port: 69/udp
+    permanent: true
+    state: enabled
+  tags:
+    - grendel_build
+    - firewall
+
+- name: firewall | Permit traffic in default zone on port 4011/udp for iPXE
+  ansible.builtin.firewalld:
+    port: 4011/udp
+    permanent: true
+    state: enabled
+  tags:
+    - grendel_build
+    - firewall
+
+- name: firewall | Reload firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: reloaded
+  tags:
+    - grendel_build
+    - firewall

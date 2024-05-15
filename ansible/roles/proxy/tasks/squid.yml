@@ -1,0 +1,57 @@
+---
+
+- name: squid | Pull docker image ubuntu/squid
+  community.docker.docker_image:
+    name: "{{ squid_image }}:{{ squid_version }}"
+    source: pull
+    state: present
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tags: squid
+
+- name: squid | Create /opt/squid
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "13"
+    group: "13"
+    mode: "0750"
+  with_items:
+    - /opt/squid/var/spool
+    - /opt/squid/var/log
+    - /opt/squid/etc
+  tags: squid
+
+- name: squid | Configure squid
+  ansible.builtin.template:
+    src: "squid.conf.j2"
+    dest: "/opt/squid/etc/squid.conf"
+    mode: "0644"
+  tags: squid
+
+- name: squid | Create squid container
+  community.docker.docker_container:
+    name: "{{ squid_container }}"
+    image: "{{ squid_image }}:{{ squid_version }}"
+    state: started
+    recreate: true
+    restart: true
+    restart_policy: "always"
+    env:
+      TZ: 'Asia/Shanghai'
+    published_ports:
+      - "{{ squid_port }}:3128"
+    volumes:
+      - /opt/squid/var/log:/var/log/squid
+      - /opt/squid/var/spool:/var/spool/squid
+      - /opt/squid/etc/squid.conf:/etc/squid/squid.conf
+  tags: squid
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+
+- name: squid | Open firewall for squid service
+  ansible.builtin.firewalld:
+    port: "{{ squid_port }}/tcp"
+    permanent: true
+    state: enabled
+  tags: squid, firewalld

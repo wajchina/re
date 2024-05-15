@@ -1,0 +1,42 @@
+---
+
+- name: assert | Test if squid_container is set correctly
+  ansible.builtin.assert:
+    that:
+      - squid_container is defined
+      - squid_container is string
+      - squid_container is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if squid_port is set correctly
+  ansible.builtin.assert:
+    that:
+      - squid_port is defined
+      - squid_port is number
+      - squid_port > 0
+      - squid_port < 65536
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if squid_image is set correctly
+  ansible.builtin.assert:
+    that:
+      - squid_image is defined
+      - squid_image is string
+      - squid_image is not none
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if squid_version is set correctly
+  ansible.builtin.assert:
+    that:
+      - squid_version is defined
+      - squid_version is string
+      - squid_version is not none
+    quiet: yes
+  tags:
+    - assert

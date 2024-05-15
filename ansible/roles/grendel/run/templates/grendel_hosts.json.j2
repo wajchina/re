@@ -1,0 +1,27 @@
+[
+{% for host in groups[REGION] %}
+  {
+      "name": "{{ hostvars[host]["hostname"] }}",
+{% if hostvars[host]["boot"] == "install" %}
+      "provision": true,
+{% else %}
+      "provision": false,
+{% endif %}
+      "boot_image": "{{ hostvars[host]["image"] }}",
+      "interfaces": [
+{% if hostvars[host]["mac2"] != "" and hostvars[host]["ip2"] != "" %}
+         {
+           "fqdn": "{{ hostvars[host]["hostname"] }}.{{ domain_public }}",
+           "ip": "{{ hostvars[host]["ip2"] }}",
+           "mac": "{{ hostvars[host]["mac2"] }}"
+         },
+{% endif %}
+         {
+           "fqdn": "{{ hostvars[host]["hostname"] }}.{{ domain_private }}",
+           "ip": "{{ hostvars[host]["ip"] }}",
+           "mac": "{{ hostvars[host]["mac"] }}"
+         }
+      ]
+  }{{ "," if not loop.last else "" }}
+{% endfor %}
+]

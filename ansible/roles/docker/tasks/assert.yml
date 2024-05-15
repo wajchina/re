@@ -1,0 +1,19 @@
+---
+
+- name: assert | Test if docker_required_packages is set correctly
+  ansible.builtin.assert:
+    that:
+      - docker_required_packages is defined
+      - docker_required_packages is iterable
+    quiet: yes
+  tags:
+    - assert
+
+- name: assert | Test if docker_ce_repo is set correctly
+  ansible.builtin.assert:
+    that:
+      - docker_ce_repo is defined
+      - docker_ce_repo is string
+    quiet: yes
+  tags:
+    - assert

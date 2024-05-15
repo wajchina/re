@@ -1,0 +1,22 @@
+---
+
+- name: Check IB nic availability
+  block:
+    - name: Check IB nic status
+      ansible.builtin.shell: "ip a | grep -o ' ib.'"
+      changed_when: false
+      register: ib_nics
+
+  rescue:
+    - name: Message to user
+      ansible.builtin.debug:
+        msg: "{{ fail_ib_nic }}"
+
+- name: Add an IPoIB connection with static IP configuration
+  community.general.nmcli:
+    conn_name: ib0
+    ifname: ib0
+    type: infiniband
+    ip4: "{{ ib_ip }}/{{ ib_netmask }}"
+    state: present
+  when: ib_nics.stdout != ''

@@ -1,0 +1,9 @@
+---
+
+- name: Set up authorized_keys
+  ansible.posix.authorized_key:
+    user: '{{ item.user }}'
+    key: '{{ item.key }}'
+  with_items: '{{ ssh_authorized_keys }}'
+  when: ssh_authorized_keys is defined
+  tags: common, ssh_keys

@@ -1,0 +1,8 @@
+{{ ansible_managed | comment }}
+# docker proxy
+# /etc/systemd/system/docker.service.d/proxy.conf
+[Service]
+Environment="HTTP_PROXY=http://{{ proxy_server_port }}"
+Environment="HTTPS_PROXY=http://{{ proxy_server_port }}"
+Environment="FTP_PROXY=http://{{ proxy_server_port }}"
+Environment="NO_PROXY=http://{{ proxy_no_list }}"

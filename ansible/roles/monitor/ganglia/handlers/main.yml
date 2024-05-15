@@ -1,0 +1,21 @@
+---
+- name: Restart gmetad
+  ansible.builtin.service:
+    name: gmetad
+    state: restarted
+    enabled: yes
+  tags: ganglia, gmetad
+
+- name: Restart httpd
+  ansible.builtin.service:
+    name: httpd
+    state: restarted
+    enabled: yes
+  tags: ganglia, gmetad
+
+- name: Restart gmond
+  ansible.builtin.service:
+    name: gmond
+    state: restarted
+    enabled: yes
+  tags: ganglia, gmond

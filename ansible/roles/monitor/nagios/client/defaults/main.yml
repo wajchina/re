@@ -1,0 +1,8 @@
+---
+
+# default in templates/nrpe-centos7.cfg.j2
+nagios_check_dir_usage_path:
+  - /
+  - /tmp
+  - /var
+  - /opt

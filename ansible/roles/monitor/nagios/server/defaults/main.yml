@@ -1,0 +1,7 @@
+---
+
+nagios_image: jasonrivers/nagios
+nagios_version: 4.4.8
+nagios_container: nagios
+nagios_port: 8090
+nagios_alarm_token: ""

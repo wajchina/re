@@ -1,0 +1,39 @@
+---
+
+- name: sge_environment | Copy sge environment settings for sh
+  ansible.builtin.copy:
+    src: "{{ sge_root }}/default/common/settings.sh"
+    remote_src: yes
+    dest: /etc/profile.d/sge.sh
+    owner: root
+    group: root
+  tags: sge_environment
+
+- name: sge_environment | Copy sge environment settings for csh
+  ansible.builtin.copy:
+    src: "{{ sge_root }}/default/common/settings.csh"
+    remote_src: yes
+    dest: /etc/profile.d/sge.csh
+    owner: root
+    group: root
+  tags: sge_environment
+
+- name: sge_environment | Find sge execd start script
+  find:
+    paths="/etc/init.d/"
+    patterns="sgeexecd.*"
+    file_type=file
+  register: startup_scripts
+  tags: sge_environment
+
+- name: sge_environment | Add ulimit setting to sge execd start script
+  ansible.builtin.lineinfile:
+    path: "{{ line_item.path }}"
+    insertafter: "^SGE_EXECD_PORT="
+    line: "ulimit -n {{ sge_execd_ulimit }}"
+  with_items: "{{ startup_scripts.files }}"
+  loop_control:
+    loop_var: line_item
+  when: startup_scripts is defined
+  ignore_errors: True
+  tags: sge_environment

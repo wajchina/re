@@ -1,0 +1,15 @@
+{% for host in groups[REGION] %}
+
+{% if hostvars[host]["ip"] != "" %}
+{{ hostvars[host]["ip"] }} {{ hostvars[host]["hostname"] }}.{{ domain_private }} {{ hostvars[host]["hostname"] }}
+{% endif %}
+
+{% if hostvars[host]["ip2"] != "" %}
+{{ hostvars[host]["ip2"] }} {{ hostvars[host]["hostname"] }}.{{ domain_public }}
+{% endif %}
+
+{% if hostvars[host]["ipmi_ip"] != "" %}
+{{ hostvars[host]["ipmi_ip"] }} {{ hostvars[host]["hostname"] }}.ipmi
+{% endif %}
+
+{% endfor %}

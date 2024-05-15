@@ -1,0 +1,14 @@
+---
+
+- name: KVM and QEMU System components
+  ansible.builtin.yum:
+    name:
+      - libvirt
+      - virt-install
+      - virt-manager
+
+- name: Libvirtd systemd service
+  ansible.builtin.service:
+    name: libvirtd
+    enabled: true
+    state: started

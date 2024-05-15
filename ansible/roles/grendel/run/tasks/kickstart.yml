@@ -1,0 +1,52 @@
+---
+
+- name: kickstart | Include kickstart roles
+  block:
+    - name: kickstart | Include hosts
+      ansible.builtin.include_vars: vars/kickstart/hosts.yml
+    - name: kickstart | Include repository
+      ansible.builtin.include_vars: vars/kickstart/repository.yml
+    - name: kickstart | Include runonce
+      ansible.builtin.include_vars: vars/kickstart/runonce.yml
+    - name: kickstart | Include ssh
+      ansible.builtin.include_vars: vars/kickstart/ssh.yml
+    - name: kickstart | Include common
+      ansible.builtin.include_vars: vars/kickstart/common.yml
+  tags:
+    - grendel_run
+    - kickstart
+
+- name: kickstart | Incorrect root password
+  ansible.builtin.fail:
+    msg: "{{ invalid_root_password }}"
+  when: (root_password is undefined) or (root_password == '') or (root_password is none)
+  tags:
+    - grendel_run
+    - kickstart
+
+- name: kickstart | Generate kickstart template file for centos_default image and centos_sge_execution image
+  ansible.builtin.template:
+    src: ks.tmpl.j2
+    dest: "../inputs/{{ REGION }}/_files/templates/{{ image_ks_partition }}.ks.tmpl"
+    mode: 0644
+  with_items:
+    - centos_default
+    - centos_sge_execution
+  loop_control:
+    loop_var: image_ks_partition
+  tags:
+    - grendel_run
+    - kickstart
+
+- name: kickstart | Generate cloud-init file for ubuntu
+  ansible.builtin.template:
+    src: "{{ autoinstall }}.tmpl.j2"
+    dest: "../inputs/{{ REGION }}/_files/templates/{{ autoinstall }}.tmpl"
+    mode: 0644
+  with_items:
+    - cloud-init
+  loop_control:
+    loop_var: autoinstall
+  tags:
+    - grendel_run
+    - kickstart

@@ -1,0 +1,14 @@
+---
+
+- name: Import assert.yml
+  ansible.builtin.import_tasks: assert.yml
+  run_once: yes
+  delegate_to: localhost
+  tags:
+    - nagios-client
+
+- include: centos-7.yml
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+  tags:
+    - nagios-client
+

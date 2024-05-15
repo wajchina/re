@@ -1,0 +1,23 @@
+---
+
+# Usage: requirement.yml
+required_packages:
+  - git
+  - epel-release
+  - gcc
+  - gcc-c++
+  - net-tools
+  - python2-pip
+  - python3-pip
+  - yum-plugin-versionlock
+  - vim
+  - bash-completion
+
+# Usage: build.yml
+grendel_image_name: grendel
+grendel_image_tag: v0.0.7.2
+grendel_package_url: "https://gitee.com/wajchina/grendel/releases/download/v0.0.7.2/grendel-0.0.7.2-0-g3e37ed8-dirty-linux-amd64.tar.gz"
+grendel_checksum_url: "https://gitee.com/wajchina/grendel/releases/download/v0.0.7.2/sha256sum.txt"
+
+# Usage: ssh.yml
+ssh_config_dest: /etc/ssh

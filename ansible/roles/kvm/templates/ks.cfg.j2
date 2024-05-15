@@ -1,0 +1,59 @@
+{{ ansible_managed | comment }}
+
+## Kickstart file for auto installation
+# refer: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/installation_guide/sect-kickstart-syntax
+
+text
+skipx
+cdrom
+keyboard us
+lang en_US.UTF-8
+eula --agreed
+reboot --eject
+timezone --utc Asia/Shanghai
+selinux --disabled
+firewall --disabled
+
+rootpw --iscrypted {{ vm.root_pwd | password_hash('sha512') }}
+
+{% for net in vm.net %}
+
+network --hostname={{ vm.name }} {% if net.name is defined %}--device={{ net.name }} {% endif %}
+{%- if net.bootproto is defined -%} --bootproto={{ net.bootproto }} {% endif %}
+{%- if net.ip is defined -%} --ip={{ net.ip }} {% endif %}
+{%- if net.netmask is defined -%} --netmask={{ net.netmask }} {% endif %}
+{%- if net.gateway is defined -%} --gateway={{ net.gateway }} {% endif %}
+{%- if net.nameserver is defined %} --nameserver={{ net.nameserver|join(',') }} {% endif %}
+
+{% endfor %}
+
+bootloader --location=mbr
+zerombr
+clearpart --all --initlabel
+part swap --asprimary --fstype="swap" --size=512
+part /boot/efi --fstype="efi" --size=200
+part /boot --fstype xfs --size=1024
+part pv.01 --size=1 --grow
+volgroup rootvg01 pv.01
+logvol / --fstype xfs --name=lv01 --vgname=rootvg01 --size=1 --grow
+
+%packages
+@core
+@base
+kernel-devel
+kernel-headers
+openssh-clients
+bash-completion
+nfs-utils
+net-tools
+rsync
+yum-utils
+#network-scripts #uncomment just for release 8
+vim-enhanced
+sysstat
+iotop
+tmux
+%end
+
+services --enabled=serial-getty@ttyS0
+
