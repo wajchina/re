@@ -12,7 +12,7 @@ grendel_image_tag: v0.0.7.2
 grendel_volume: /data/grendel
 
 # Usage: mapping_file.yml
-mapping_file_temp: "../../inputs/{{ REGION }}/_temp"
+mapping_file_temp: "../inputs/{{ REGION }}/_temp"
 etc_hosts_local: ""
 
 # Usage: kickstart.yml
