@@ -9,11 +9,11 @@
   tags:
     - assert
 
-- name: assert | Test if docker_ce_repo is set correctly
+- name: assert | Test if docker_ce_mirror is set correctly
   ansible.builtin.assert:
     that:
-      - docker_ce_repo is defined
-      - docker_ce_repo is string
+      - docker_ce_mirror is defined
+      - docker_ce_mirror is string
     quiet: yes
   tags:
     - assert

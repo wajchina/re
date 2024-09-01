@@ -1,42 +1,10 @@
 ---
 
-- name: install | Add Docker repo using proxy
-  ansible.builtin.get_url:
-    url: "{{ docker_ce_repo }}"
-    use_proxy: yes
-    dest: /etc/yum.repos.d/docker-ce.repo
-    validate_certs: false
-    force: yes
-  environment: "{{ proxy_env }}"
-  when: docker_using_proxy is defined and docker_using_proxy|bool == True
-  tags:
-    - install
-
-- name: install | Add Docker repo without proxy
-  ansible.builtin.get_url:
-    url: "{{ docker_ce_repo }}"
-    use_proxy: no
-    force: yes
-    dest: /etc/yum.repos.d/docker-ce.repo
-  when: docker_using_proxy is not defined or docker_using_proxy|bool == False
-  tags:
-    - install
-
-- name: install | Enable 0 Docker CE repo
-  community.general.ini_file:
-    dest: /etc/yum.repos.d/docker-ce.repo
-    section: 'docker-ce-stable'
-    option: enabled
-    value: "0"
-  tags:
-    - install
-
-- name: install | Enable 0 Docker Test repo
-  community.general.ini_file:
-    dest: /etc/yum.repos.d/docker-ce.repo
-    section: 'docker-ce-test'
-    option: enabled
-    value: "0"
+- name: install | Add Docker repo
+  ansible.builtin.template:
+    src: docker-ce.repo.j2
+    dest: "/etc/yum.repos.d/docker-ce.repo"
+    mode: 0644
   tags:
     - install
 
@@ -103,7 +71,7 @@
     src: proxy.conf.j2
     dest: "/etc/systemd/system/docker.service.d/proxy.conf"
     mode: 0644
-  when: docker_using_proxy is not defined or docker_using_proxy|bool == False
+  when: docker_using_proxy is defined and docker_using_proxy|bool == True
   notify:
     - systemd daemon reload
     - Restart docker

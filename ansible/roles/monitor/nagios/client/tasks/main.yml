@@ -7,8 +7,14 @@
   tags:
     - nagios-client
 
-- include: centos-7.yml
+- name: Import centos-7.yml
+  ansible.builtin.import_tasks: centos-7.yml
   when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
   tags:
     - nagios-client
 
+- name: Import rocky-8.yml
+  ansible.builtin.import_tasks: rocky-8.yml
+  when: ansible_distribution == "Rocky" and ansible_distribution_major_version == "8"
+  tags:
+    - nagios-client

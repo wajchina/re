@@ -3,20 +3,6 @@
 {% if groups['sge_execution'] is defined %}
 {% if groups['sge_execution'] != [] %}
 
-# sge_execution node
-define hostgroup {
-    hostgroup_name          sge_execution
-    alias                   sge_execution-node
-}
-
-{% for host in groups['sge_execution'] %}
-define host {
-    use                     linux-server
-    host_name               {{ host }}
-    hostgroups              sge_execution
-}
-{% endfor %}
-
 # service for sge_execution
 define service{
     use                     generic-service,graphed-service

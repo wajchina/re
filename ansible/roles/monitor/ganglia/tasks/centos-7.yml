@@ -1,0 +1,179 @@
+---
+
+- name: Check /usr/bin/nvidia-smi exists
+  ansible.builtin.stat:
+    path: /usr/bin/nvidia-smi
+  register: check_nvidia_smi_exits
+  tags: ganglia, gmond, gpu
+
+- name: Install ganglia software
+  ansible.builtin.yum:
+    name:
+      - ganglia
+      - ganglia-devel
+      - ganglia-gmond
+      - python2-ganglia-gmond
+    state: present
+  tags: ganglia, gmond
+
+- name: Install ganglia software on gmetad node
+  ansible.builtin.yum:
+    name:
+      - ganglia-gmetad
+      - ganglia-web
+    state: present
+  when: is_gmetad_server is defined and is_gmetad_server
+  tags: ganglia, gmetad
+
+- name: Configure the gmetad
+  ansible.builtin.template:
+    src: gmetad.conf.j2
+    dest: /etc/ganglia/gmetad.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: yes
+  when: is_gmetad_server is defined and is_gmetad_server
+  notify:
+    - Restart gmetad
+  tags: ganglia, gmetad
+
+- name: Configure the httpd ganglia
+  ansible.builtin.template:
+    src: ganglia.conf.j2
+    dest: /etc/httpd/conf.d/ganglia.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: yes
+  when: is_gmetad_server is defined and is_gmetad_server
+  notify:
+    - Restart httpd
+  tags: ganglia, gmetad
+
+- name: Configure the httpd default page
+  ansible.builtin.copy:
+    src: index.html
+    dest: /var/www/html/index.html
+    owner: root
+    group: root
+    mode: "0644"
+  when: is_gmetad_server is defined and is_gmetad_server
+  tags: ganglia, gmetad
+
+- name: Add timezone to /etc/php.ini
+  ansible.builtin.lineinfile:
+    path: /etc/php.ini
+    state: present
+    insertafter: "^;date.timezone"
+    regexp: "^date.timezone = "
+    line: "date.timezone = 'Asia/Shanghai'"
+  when: is_gmetad_server is defined and is_gmetad_server
+  ignore_errors: True
+  notify:
+    - Restart httpd
+  tags: ganglia, gmetad
+
+- name: Copy nvidia gpu php file to ganglia web server
+  ansible.builtin.copy:
+    src: "{{ gpu_php_file }}"
+    dest: /usr/share/ganglia/graph.d/
+    owner: root
+    group: root
+    mode: "0644"
+  with_fileglob:
+    - "gpu/nvidia/graph.d/*.php"
+  loop_control:
+    loop_var: gpu_php_file
+  when: is_gmetad_server is defined and is_gmetad_server
+  notify:
+    - Restart httpd
+  tags: ganglia, gmetad
+
+- name: Download python module for gpu node
+  ansible.builtin.get_url:
+    url: "{{ extra_packages_url }}/src/ganglia/nvidia-ml-py-11.450.51.tar.gz"
+    dest: /tmp/
+    owner: root
+    group: root
+    mode: "0755"
+  when: is_gpu_server is defined and is_gpu_server
+  tags: ganglia, gmond, gpu
+
+- name: Install python module from local file nvidia-ml-py-11.450.51
+  ansible.builtin.pip:
+    name: file:///tmp/nvidia-ml-py-11.450.51.tar.gz
+    executable: pip2
+  when: is_gpu_server is defined and is_gpu_server
+  tags: ganglia, gmond, gpu
+
+- name: Copy nvidia.conf
+  ansible.builtin.copy:
+    src: "gpu/nvidia/conf.d/nvidia.pyconf"
+    dest: /etc/ganglia/conf.d/
+    owner: root
+    group: root
+    mode: "0644"
+  when: is_gpu_server is defined and is_gpu_server and check_nvidia_smi_exits.stat.exists
+  tags: ganglia, gmond, gpu
+
+- name: Copy nvidia.py
+  ansible.builtin.copy:
+    src: "gpu/nvidia/python_modules/nvidia.py"
+    dest: /usr/lib64/ganglia/python_modules/
+    owner: root
+    group: root
+    mode: "0755"
+  when: is_gpu_server is defined and is_gpu_server
+  notify:
+    - Restart gmond
+  tags: ganglia, gmond, gpu
+
+- name: Get nic interface for iface.pyconf
+  ansible.builtin.shell:
+    cmd: set -o pipefail; /usr/sbin/ip route get $(ping -c 1 -t 1 {{ gmetad_server_hostname }}  | head -1 | cut -d ' ' -f 3 | tr -d '()') | awk '{print $(NF-2); exit;}'
+  register: interface_for_ganglia
+  when: gmetad_server_hostname is defined
+  changed_when: interface_for_ganglia.rc != 0
+  ignore_errors: True
+  tags: ganglia, gmond
+
+- name: Set nic interface name to var
+  ansible.builtin.set_fact:
+    ganglia_iface: "{{ interface_for_ganglia.stdout }}"
+  when: interface_for_ganglia is defined and interface_for_ganglia.rc == 0
+  tags: ganglia, gmond, gpu
+
+- name: Copy iface.py
+  ansible.builtin.copy:
+    src: "iface.py"
+    dest: /usr/lib64/ganglia/python_modules/
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ganglia, gmond
+
+- name: Generate iface.pyconf from template
+  ansible.builtin.template:
+    src: iface.pyconf.j2
+    dest: /etc/ganglia/conf.d/iface.pyconf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: yes
+  when: ganglia_iface is defined
+  notify:
+    - Restart gmond
+  tags: ganglia, gmond
+
+- name: Configure Ganglia Monitors
+  ansible.builtin.template:
+    src: gmond_centos7.conf.j2
+    dest: /etc/ganglia/gmond.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: yes
+  notify:
+    - Restart gmond
+  tags: ganglia, gmond

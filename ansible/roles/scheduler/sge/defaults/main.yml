@@ -1,6 +1,6 @@
 ---
 
-sge_root: "/opt/gridengine"
+sge_root: "/opt/sge"
 sge_qmaster_port: 6444
 sge_execd_port: 6445
 sge_cluster_name: "re-{{ REGION }}"
@@ -9,3 +9,4 @@ admin_user: sge
 gid_range: "20000-20200"
 sge_master_hostname: localhost
 sge_execd_ulimit: 204800
+sge_rpm: "sge-8.1.10-1.el8.x86_64.rpm"

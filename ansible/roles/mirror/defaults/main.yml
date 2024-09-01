@@ -7,3 +7,4 @@ nexus_port: 8081
 path_for_re_raw_file: /opt/re/configuration
 
 local_mirror_server: ''
+local_mirror_server_is_ready: False

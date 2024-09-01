@@ -9,6 +9,15 @@
     - grendel_run
     - repository
 
+- name: repository | Assert valid rocky_iso_file_path
+  ansible.builtin.stat:
+    path: "{{ path_for_rocky_iso_file }}"
+    get_checksum: no
+  register: result_path_rocky_iso_file
+  tags:
+    - grendel_run
+    - repository
+
 - name: repository | Assert valid ubuntu_iso_file_path
   ansible.builtin.stat:
     path: "{{ path_for_ubuntu_iso_file }}"
@@ -26,6 +35,14 @@
     - grendel_run
     - repository
 
+- name : Incorrect rocky_iso_file_path
+  ansible.builtin.fail:
+    msg: "{{ invalid_iso_file_path }}"
+  when: ( result_path_rocky_iso_file.stat.exists == false ) or ( ".iso" not in path_for_rocky_iso_file )
+  tags:
+    - grendel_run
+    - repository
+
 - name : Incorrect ubuntu_iso_file_path
   ansible.builtin.fail:
     msg: "{{ invalid_iso_file_path }}"
@@ -34,7 +51,7 @@
     - grendel_run
     - repository
 
-- name: repository | Fail when iso path valid but image not right
+- name: repository | Fail when centos iso path valid but image not right
   ansible.builtin.fail:
     msg: "{{ invalid_iso_file_path }}"
   when: ( result_path_centos_iso_file.stat.exists == true ) and ( ".iso" not in path_for_centos_iso_file )
@@ -42,7 +59,15 @@
     - grendel_run
     - repository
 
-- name: repository | Fail when iso path valid but image not right
+- name: repository | Fail when rocky iso path valid but image not right
+  ansible.builtin.fail:
+    msg: "{{ invalid_iso_file_path }}"
+  when: ( result_path_rocky_iso_file.stat.exists == true ) and ( ".iso" not in path_for_rocky_iso_file )
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Fail when ubuntu iso path valid but image not right
   ansible.builtin.fail:
     msg: "{{ invalid_iso_file_path }}"
   when: ( result_path_ubuntu_iso_file.stat.exists == true ) and ( ".iso" not in path_for_ubuntu_iso_file )
@@ -56,6 +81,7 @@
     state: directory
   loop:
     - "{{ centos_repo_path }}"
+    - "{{ rocky_repo_path }}"
     - "{{ ubuntu_repo_path }}"
   tags:
     - grendel_run
@@ -77,6 +103,14 @@
     - grendel_run
     - repository
 
+- name: repository | Umount the rocky iso file
+  ansible.posix.mount:
+    path: "{{ grendel_volume }}/opt/os/{{ rocky_repo_path }}"
+    state: unmounted
+  tags:
+    - grendel_run
+    - repository
+
 - name: repository | Umount the ubuntu iso file
   ansible.posix.mount:
     path: "{{ grendel_volume }}/opt/os/{{ ubuntu_repo_path }}"
@@ -89,6 +123,18 @@
   ansible.posix.mount:
     path: "{{ grendel_volume }}/opt/os/{{ centos_repo_path }}"
     src: "{{ path_for_centos_iso_file }}"
+    opts: loop
+    boot: false
+    fstype: iso9660
+    state: mounted
+  tags:
+    - grendel_run
+    - repository
+
+- name: repository | Mount the rocky iso file
+  ansible.posix.mount:
+    path: "{{ grendel_volume }}/opt/os/{{ rocky_repo_path }}"
+    src: "{{ path_for_rocky_iso_file }}"
     opts: loop
     boot: false
     fstype: iso9660

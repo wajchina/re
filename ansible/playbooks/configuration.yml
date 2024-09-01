@@ -29,6 +29,7 @@
 - name: Playbooks | Run docker configuration
   hosts: docker
   roles:
+    - network/nameserver
     - docker
     - repository
     - ntp
@@ -43,6 +44,8 @@
     - monitor/ganglia
     - monitor/nagios/client
     - rsyslog
+    - security/package
+    - security/sshd
 
 - name: Playbooks | Run proxy_server configuration
   hosts: proxy_server
@@ -76,6 +79,8 @@
     - monitor/nagios/client
     - rsyslog
     - network/nameserver
+    - security/package
+    - security/sshd
 
 - name: Playbooks | Run computer infiniband configuration
   hosts: compute
@@ -105,3 +110,9 @@
   tags: sge
   roles:
     - scheduler/sge
+
+- name: Playbooks | Run scheduler/slurm configuration
+  hosts: slurm
+  tags: slurm
+  roles:
+    - scheduler/slurm

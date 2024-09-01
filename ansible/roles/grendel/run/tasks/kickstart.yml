@@ -26,12 +26,26 @@
 
 - name: kickstart | Generate kickstart template file for centos_default image and centos_sge_execution image
   ansible.builtin.template:
-    src: ks.tmpl.j2
+    src: ks_centos7.tmpl.j2
     dest: "../inputs/{{ REGION }}/_files/templates/{{ image_ks_partition }}.ks.tmpl"
     mode: 0644
   with_items:
     - centos_default
     - centos_sge_execution
+  loop_control:
+    loop_var: image_ks_partition
+  tags:
+    - grendel_run
+    - kickstart
+
+- name: kickstart | Generate kickstart template file for rocky_default image and rocky_sge_execution image
+  ansible.builtin.template:
+    src: ks_rocky8.tmpl.j2
+    dest: "../inputs/{{ REGION }}/_files/templates/{{ image_ks_partition }}.ks.tmpl"
+    mode: 0644
+  with_items:
+    - rocky_default
+    - rocky_sge_execution
   loop_control:
     loop_var: image_ks_partition
   tags:

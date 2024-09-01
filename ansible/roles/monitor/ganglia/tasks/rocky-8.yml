@@ -1,0 +1,80 @@
+---
+
+- name: Install ganglia software
+  ansible.builtin.yum:
+    name:
+      - ganglia
+      - ganglia-devel
+      - ganglia-gmond
+    state: present
+  tags: ganglia, gmond
+
+- name: Install ganglia software on gmetad node
+  ansible.builtin.yum:
+    name:
+      - ganglia-gmetad
+      - ganglia-web
+    state: present
+  when: is_gmetad_server is defined and is_gmetad_server
+  tags: ganglia, gmetad
+
+- name: Configure the gmetad
+  ansible.builtin.template:
+    src: gmetad.conf.j2
+    dest: /etc/ganglia/gmetad.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: yes
+  when: is_gmetad_server is defined and is_gmetad_server
+  notify:
+    - Restart gmetad
+  tags: ganglia, gmetad
+
+- name: Configure the httpd ganglia
+  ansible.builtin.template:
+    src: ganglia.conf.j2
+    dest: /etc/httpd/conf.d/ganglia.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: yes
+  when: is_gmetad_server is defined and is_gmetad_server
+  notify:
+    - Restart httpd
+  tags: ganglia, gmetad
+
+- name: Configure the httpd default page
+  ansible.builtin.copy:
+    src: index.html
+    dest: /var/www/html/index.html
+    owner: root
+    group: root
+    mode: "0644"
+  when: is_gmetad_server is defined and is_gmetad_server
+  tags: ganglia, gmetad
+
+- name: Add timezone to /etc/php.ini
+  ansible.builtin.lineinfile:
+    path: /etc/php.ini
+    state: present
+    insertafter: "^;date.timezone"
+    regexp: "^date.timezone = "
+    line: "date.timezone = 'Asia/Shanghai'"
+  when: is_gmetad_server is defined and is_gmetad_server
+  ignore_errors: True
+  notify:
+    - Restart httpd
+  tags: ganglia, gmetad
+
+- name: Configure Ganglia Monitors
+  ansible.builtin.template:
+    src: gmond_rocky8.conf.j2
+    dest: /etc/ganglia/gmond.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: yes
+  notify:
+    - Restart gmond
+  tags: ganglia, gmond

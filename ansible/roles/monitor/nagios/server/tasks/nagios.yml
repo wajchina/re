@@ -68,6 +68,7 @@
     - kvm.cfg
     - docker.cfg
     - escalations.cfg
+    - hosts_groups.cfg
   become: true
   tags:
     - nagios-server

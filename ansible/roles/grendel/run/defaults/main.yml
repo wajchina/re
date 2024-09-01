@@ -26,6 +26,8 @@ kickstart_packages: |
   kernel-devel
   net-tools
   nfs-utils
+  rsync
+  bash-completion
 kickstart_ntp: ""
 kickstart_network: ""
 kickstart_ssh: ""
@@ -37,8 +39,10 @@ ssh_authorized_keys: []
 # Usage: repository.yml
 invalid_iso_file_path: "Incorrect path_for_os_iso_file provided"
 centos_repo_path: centos
+rocky_repo_path: rocky
 ubuntu_repo_path: ubuntu
 
 # These are default values if we don't set in inputs/REGION
 path_for_centos_iso_file: /opt/re/os/CentOS-7-x86_64-Everything-2009.iso
+path_for_rocky_iso_file: /opt/re/os/Rocky-8.9-x86_64-dvd1.iso
 path_for_ubuntu_iso_file: /opt/re/os/ubuntu-23.04-live-server-amd64.iso

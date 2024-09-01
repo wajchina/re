@@ -17,6 +17,24 @@
     "cmdline": "ks={% raw %}{{ $.kickstart }} {% endraw %} network ksdevice=bootif ks.device=bootif console=tty0 console=ttyS0,115200n8 inst.sshd"
 },
 {
+    "name": "rocky_default",
+    "kernel": "/opt/grendel/os/rocky/images/pxeboot/vmlinuz",
+    "initrd": [
+        "/opt/grendel/os/rocky/images/pxeboot/initrd.img"
+    ],
+    "provision_template": "rocky_default.ks.tmpl",
+    "cmdline": "inst.ks={% raw %}{{ $.kickstart }} {% endraw %} network ksdevice=bootif ks.device=bootif console=tty0 console=ttyS0,115200n8 inst.sshd"
+},
+{
+    "name": "rocky_sge_execution",
+    "kernel": "/opt/grendel/os/rocky/images/pxeboot/vmlinuz",
+    "initrd": [
+        "/opt/grendel/os/rocky/images/pxeboot/initrd.img"
+    ],
+    "provision_template": "rocky_sge_execution.ks.tmpl",
+    "cmdline": "inst.ks={% raw %}{{ $.kickstart }} {% endraw %} network ksdevice=bootif ks.device=bootif console=tty0 console=ttyS0,115200n8 inst.sshd"
+},
+{
     "name": "ubuntu",
     "kernel": "/opt/grendel/os/ubuntu/casper/vmlinuz",
     "initrd": [

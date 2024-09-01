@@ -1,0 +1,28 @@
+{{ ansible_managed | comment }}
+
+{% set host_list = [] %}
+{% set group_tuple = ('docker','kvm','sge_execution','sge_submit','sge_qmaster') %}
+
+# hostgoups
+{% for hostgroup in groups %}
+{% if hostgroup in group_tuple and groups[hostgroup] != [] %}
+define hostgroup {
+    hostgroup_name          {{ hostgroup }}
+    alias                   {{ hostgroup }}-node
+    members                 {{ groups[hostgroup]|join(', ') }}
+}
+{% for host in groups[hostgroup] %}
+{% if host_list.append(host) %}{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+# hosts
+{% if host_list != [] %}
+{% for host in host_list|unique %}
+define host {
+    use                     linux-server
+    host_name               {{ host }}
+}
+{% endfor %}
+{% endif %}

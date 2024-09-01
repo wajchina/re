@@ -22,6 +22,23 @@ all:
         part / --ondisk=$ROOTDRIVE --fstype="xfs" --size=30720
         part /var --ondisk=$ROOTDRIVE --fstype="xfs" --size=30720
         part /tmp --ondisk=$ROOTDRIVE --fstype="xfs" --size=1 --grow
+      rocky_default: |
+        clearpart --all --initlabel --drives=$ROOTDRIVE
+        zerombr
+        part /boot --ondisk=$ROOTDRIVE --fstype="xfs" --size=1024
+        part /boot/efi --ondisk=$ROOTDRIVE --fstype="efi" --size=256
+        part swap --ondisk=$ROOTDRIVE --fstype="swap" --size=8192
+        part /tmp --ondisk=$ROOTDRIVE --fstype="xfs" --size=16384
+        part / --ondisk=$ROOTDRIVE --fstype="xfs" --size=1 --grow
+      rocky_sge_execution: |
+        clearpart --all --initlabel --drives=$ROOTDRIVE
+        zerombr
+        part /boot --ondisk=$ROOTDRIVE --fstype="xfs" --size=1024
+        part /boot/efi --ondisk=$ROOTDRIVE --fstype="efi" --size=256
+        part swap --ondisk=$ROOTDRIVE --fstype="swap" --size=16384
+        part / --ondisk=$ROOTDRIVE --fstype="xfs" --size=30720
+        part /var --ondisk=$ROOTDRIVE --fstype="xfs" --size=30720
+        part /tmp --ondisk=$ROOTDRIVE --fstype="xfs" --size=1 --grow
 
     kickstart_partition: |
       %pre --log=/tmp/ks_pre-partition.log

@@ -33,3 +33,24 @@ virtual_machines:
         bootproto: static
         ip: 10.10.10.100
         netmask: 255.255.255.0
+virtual_machines:
+  - name: example-re-2
+    root_pwd: 'YOUR_PASSWORD'
+    mem: 8192
+    cpu: 4
+    disk: 30
+    iso: "/root/Rocky-8.10-x86_64-dvd1.iso"
+    net:
+      - name: ens2
+        bridge: br1
+        bootproto: static
+        ip: 192.168.100.200
+        netmask: 255.255.255.0
+        gateway: 192.168.100.254
+        nameserver:
+          - 192.168.110.1
+      - name: ens3
+        bridge: br2
+        bootproto: static
+        ip: 10.10.10.200
+        netmask: 255.255.255.0

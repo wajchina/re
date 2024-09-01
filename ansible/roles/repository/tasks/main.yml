@@ -12,3 +12,9 @@
   when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
   tags:
     - repository
+
+- name: Import rocky 8 yum repository
+  ansible.builtin.import_tasks: yum_rocky8.yml
+  when: ansible_distribution == "Rocky" and ansible_distribution_major_version == "8"
+  tags:
+    - repository

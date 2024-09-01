@@ -3,20 +3,6 @@
 {% if groups['kvm'] is defined %}
 {% if groups['kvm'] != [] %}
 
-# kvm node
-define hostgroup {
-    hostgroup_name          kvm
-    alias                   kvm-node
-}
-
-{% for host in groups['kvm'] %}
-define host {
-    use                     linux-server
-    host_name               {{ host }}
-    hostgroups              kvm
-}
-{% endfor %}
-
 # service for kvm
 define service{
     use                     generic-service,graphed-service

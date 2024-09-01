@@ -1,7 +1,8 @@
 ---
 
 docker_bip: "192.168.255.1/24"
-docker_ce_repo: "http://mirrors.bfsu.edu.cn/docker-ce/linux/centos/docker-ce.repo"
+docker_max_download_attempts: 30
+docker_ce_mirror: "http://mirrors.bfsu.edu.cn/docker-ce/"
 
 docker_required_packages:
   - git

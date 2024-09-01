@@ -1,0 +1,88 @@
+---
+
+- name: nagios-client | Install nagios client needed rpms
+  ansible.builtin.yum:
+    name:
+        - nrpe
+        - nagios-plugins-nrpe
+        - nagios-common
+        - nagios-plugins
+        - nagios-plugins-tcp
+        - nagios-plugins-disk
+        - nagios-plugins-http
+        - nagios-plugins-load
+        - nagios-plugins-swap
+        - nagios-plugins-users
+        - nagios-plugins-nagios
+        - "{{ extra_packages_url }}/rpm/Lib_Utils-1.00-09.noarch.rpm"
+        - "{{ extra_packages_url }}/rpm/MegaCli-8.04.07-1.noarch.rpm"
+        - "{{ extra_packages_url }}/rpm/perccli-1.17.10-1.noarch.rpm"
+        - "{{ extra_packages_url }}/rpm/hpssacli-2.40-13.0.x86_64.rpm"
+        - "{{ extra_packages_url }}/rpm/storcli-007.0606.0000.0000-1.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  tags:
+    - nagios-client
+
+- name: nagios-client | Setup NRPE client configuration
+  ansible.builtin.template:
+    src: nrpe-rocky8.cfg.j2
+    dest: /etc/nagios/nrpe.cfg
+    mode: '0644'
+    backup: yes
+  become: true
+  notify:
+    - Start nrpe
+    - Restart dbus
+    - Restart systemd-logind
+  tags :
+    - nagios-client
+
+- name: nagios-client | Copy nrpe plugins
+  ansible.builtin.copy:
+    src: "plugins/{{ item }}"
+    dest: /usr/lib64/nagios/plugins/
+    owner: root
+    group: root
+    mode: "0755"
+  with_items:
+    - check_mem
+    - check_service
+    - check_raid
+    - check_mdt
+  tags:
+    - nagios-client
+
+- name: nagios-client | Copy hba lsi bin, such as sas2ircu sas3ircu
+  ansible.builtin.get_url:
+    url: "{{ item }}"
+    dest: /sbin/
+    owner: root
+    group: root
+    mode: "0755"
+  with_items:
+    - "{{ extra_packages_url }}/src/nagios/lsi/centos7/sas2ircu"
+    - "{{ extra_packages_url }}/src/nagios/lsi/centos7/sas2flash"
+    - "{{ extra_packages_url }}/src/nagios/lsi/centos7/sas3ircu"
+    - "{{ extra_packages_url }}/src/nagios/lsi/centos7/sas3flash"
+  tags:
+    - nagios-client
+
+- name: nagios-client | Add sudo rights to nrpe
+  ansible.builtin.template:
+    src: nrpe.sudoers.j2
+    dest: /etc/sudoers.d/nrpe
+    mode: '0440'
+    backup: yes
+  become: true
+  tags :
+    - nagios-client
+
+- name: nagios-client | Start NRPE service
+  ansible.builtin.service:
+    name: nrpe
+    state: started
+    enabled: yes
+  ignore_errors: true
+  tags:
+    - nagios-client

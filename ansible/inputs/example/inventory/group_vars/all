@@ -14,9 +14,10 @@ etc_hosts_local: |
     10.10.10.100 example-container-1.kvm
 
 # grendel image
-image: "centos_default"
+image: "rocky_default"
 
 # files path
+path_for_rocky_iso_file: "/media/isos/Rocky-8.10-x86_64-dvd1.iso"
 path_for_centos_iso_file: "/media/isos/CentOS-7-x86_64-Everything-2207-02.iso"
 path_for_ubuntu_iso_file: "/media/isos/ubuntu-22.04.4-live-server-amd64.iso"
 path_for_re_raw_file: "/media/configuration"
@@ -50,6 +51,7 @@ ssh_authorized_keys:
 nexus_server: "10.10.10.202"
 nexus_port: 8081
 local_mirror_server: "192.168.100.150"
+local_mirror_server_is_ready: False
 ## Local mirror can build by https://github.com/wajchina/mirrors
 
 # extra_packages_url
@@ -101,14 +103,10 @@ squid_rules:
 
 # docker_using_proxy
 docker_using_proxy: False
-
-docker_ce_repo: "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/centos/docker-ce.repo"
+docker_ce_mirror: "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/"
 
 # nagios_server
 nagios_server: "10.10.10.202,192.168.100.0/24"
-
-# nagios_alarm_token - nagios API token
-nagios_alarm_token: ""
 
 # nagios_alarm_email
 nagios_alarm_email: "admin@example.com"

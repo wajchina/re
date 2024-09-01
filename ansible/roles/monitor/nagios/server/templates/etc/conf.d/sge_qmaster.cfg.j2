@@ -3,20 +3,6 @@
 {% if groups['sge_qmaster'] is defined %}
 {% if groups['sge_qmaster'] != [] %}
 
-# sge_qmaster node
-define hostgroup {
-    hostgroup_name          sge_qmaster
-    alias                   sge_qmaster
-}
-
-{% for host in groups['sge_qmaster'] %}
-define host {
-    use                     linux-server
-    host_name               {{ host }}
-    hostgroups              sge_qmaster
-}
-{% endfor %}
-
 # service for sge_qmaster
 define service{
     use                     generic-service,graphed-service
@@ -104,22 +90,6 @@ define service{
     hostgroup_name          sge_qmaster
     service_description     NIS-ypserv
     check_command           check_nrpe!check_service_ypserv
-    notifications_enabled   1
-}
-
-define service{
-    use                     generic-service
-    hostgroup_name          sge_qmaster
-    service_description     NIS-ypbind
-    check_command           check_nrpe!check_service_ypbind
-    notifications_enabled   1
-}
-
-define service{
-    use                     generic-service
-    hostgroup_name          sge_qmaster
-    service_description     NIS-yppasswdd
-    check_command           check_nrpe!check_service_yppasswdd
     notifications_enabled   1
 }
 

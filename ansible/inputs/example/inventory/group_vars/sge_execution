@@ -1,3 +1,3 @@
 ---
 
-image: "centos_sge_execution"
+image: "rocky_sge_execution"

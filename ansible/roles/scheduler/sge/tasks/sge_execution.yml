@@ -4,9 +4,11 @@
   ansible.builtin.yum:
     name: "{{ sge_execution_pkgs }}"
     state: present
+    disable_gpg_check: true
   vars:
     sge_execution_pkgs:
-      - "{{ extra_packages_url }}/rpm/sge-8.1.9-1.x86_64.rpm"
+      - "{{ extra_packages_url }}/rpm/{{ sge_rpm }}"
+      - m4
   tags: yum, sge
 
 - name: sge_execution | Copy installation config file to destination
@@ -47,6 +49,15 @@
   args:
     chdir: "{{ sge_root }}"
     creates: /etc/init.d/sgeexecd*
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+  tags: sge_execution
+
+- name: sge_execution | Configure sge execution only
+  ansible.builtin.command: ./inst_sge -noremote -x -auto installation.conf
+  args:
+    chdir: "{{ sge_root }}"
+    creates: /etc/systemd/system/sgeexecd.service
+  when: ansible_distribution == "Rocky" and ansible_distribution_major_version == "8"
   tags: sge_execution
 
 - name: sge_execution | Wait for 60s before starting sge service
@@ -58,4 +69,13 @@
     name: "sgeexecd.{{ sge_cluster_name }}"
     enabled: yes
     state: started
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+  tags: sge_execution
+
+- name: sge_execution | Enable sge execution service
+  ansible.builtin.service:
+    name: "sgeexecd"
+    enabled: yes
+    state: started
+  when: ansible_distribution == "Rocky" and ansible_distribution_major_version == "8"
   tags: sge_execution

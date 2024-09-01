@@ -1,0 +1,8 @@
+---
+
+- name: Reload sshd
+  ansible.builtin.service:
+    name: sshd
+    state: reloaded
+    enabled: yes
+  tags: sshd

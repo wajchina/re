@@ -1,6 +1,8 @@
 #!/bin/sh
 
-REQUIRED_PACKAGES="git ansible bash-completion docker-ce python3-pip"
+yum -y install epel-release
+
+REQUIRED_PACKAGES="git ansible bash-completion python3-pip"
 REQUIRED_COLLECTIONS="community.general community.docker ansible.posix"
 
 

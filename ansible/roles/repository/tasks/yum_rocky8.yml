@@ -1,0 +1,131 @@
+---
+
+- name: yum_repository | Modify Rocky-BaseOS repo
+  ansible.builtin.yum_repository:
+    name: baseos
+    description: Rocky Linux $releasever - BaseOS
+    file: Rocky-BaseOS
+    mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=BaseOS-$releasever
+    enabled: no
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+  tags: yum_repository
+
+- name: yum_repository | Modify Rocky-AppStream repo
+  ansible.builtin.yum_repository:
+    name: appstream
+    description: Rocky Linux $releasever - AppStream
+    file: Rocky-AppStream
+    mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=AppStream-$releasever
+    enabled: no
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+  tags: yum_repository
+
+- name: yum_repository | Modify Rocky-Extras repo
+  ansible.builtin.yum_repository:
+    name: extras
+    description: Rocky Linux $releasever - Extras
+    file: Rocky-Extras
+    mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=extras-$releasever
+    enabled: no
+    gpgcheck: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus Rocky repositories with local_mirror_server
+  block:
+    - name: yum_repository | Add Nexus-Rocky-BaseOS repo
+      ansible.builtin.yum_repository:
+        name: nexus-rocky-baseos
+        description: Nexus Rocky Linux $releasever - BaseOS
+        file: nexus-rocky
+        baseurl: http://{{ local_mirror_server }}/rocky/$releasever/BaseOS/$basearch/os/
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+    - name: yum_repository | Add Nexus-Rocky-AppStream repo
+      ansible.builtin.yum_repository:
+        name: nexus-rocky-appstream
+        description: Nexus Rocky Linux $releasever - AppStream
+        file: nexus-rocky
+        baseurl: http://{{ local_mirror_server }}/rocky/$releasever/AppStream/$basearch/os/
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+    - name: yum_repository | Add Nexus-Rocky-Extras repo
+      ansible.builtin.yum_repository:
+        name: nexus-rocky-extras
+        description: Nexus Rocky Linux $releasever - Extras
+        file: nexus-rocky
+        baseurl: http://{{ local_mirror_server }}/rocky/$releasever/extras/$basearch/os/
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+  when: local_mirror_server_is_ready
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus Rocky repositories with public mirrors
+  block:
+    - name: yum_repository | Add Nexus-Rocky-BaseOS repo
+      ansible.builtin.yum_repository:
+        name: nexus-rocky-baseos
+        description: Nexus Rocky Linux $releasever - BaseOS
+        file: nexus-rocky
+        mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=BaseOS-$releasever
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+    - name: yum_repository | Add Nexus-Rocky-AppStream repo
+      ansible.builtin.yum_repository:
+        name: nexus-rocky-appstream
+        description: Nexus Rocky Linux $releasever - AppStream
+        file: nexus-rocky
+        mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=AppStream-$releasever
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+    - name: yum_repository | Add Nexus-Rocky-Extras repo
+      ansible.builtin.yum_repository:
+        name: nexus-rocky-extras
+        description: Nexus Rocky Linux $releasever - Extras
+        file: nexus-rocky
+        mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=extras-$releasever
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+  when: not local_mirror_server_is_ready
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-EPEL repo
+  ansible.builtin.yum_repository:
+    name: nexus-epel
+    description: Extra Packages for Enterprise Linux 8 - $basearch
+    file: nexus-epel
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/8/Everything/$basearch
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/RPM-GPG-KEY-EPEL-8
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-EPEL-Debug repo
+  ansible.builtin.yum_repository:
+    name: nexus-epel-debuginfo
+    description: Extra Packages for Enterprise Linux 8 - $basearch - Debug
+    file: nexus-epel
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/8/Everything/$basearch/debug
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/RPM-GPG-KEY-EPEL-8
+  tags: yum_repository
+
+- name: yum_repository | Add Nexus-EPEL-Source repo
+  ansible.builtin.yum_repository:
+    name: nexus-epel-source
+    description: Extra Packages for Enterprise Linux 8 - $basearch - Source
+    file: nexus-epel
+    baseurl: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/8/Everything/source/tree
+    enabled: no
+    gpgcheck: yes
+    gpgkey: http://{{ nexus_server }}:{{ nexus_port }}/repository/epel/RPM-GPG-KEY-EPEL-8
+  tags: yum_repository

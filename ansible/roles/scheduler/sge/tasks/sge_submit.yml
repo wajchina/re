@@ -4,9 +4,11 @@
   ansible.builtin.yum:
     name: "{{ sge_submit_pkgs }}"
     state: present
+    disable_gpg_check: true
   vars:
     sge_submit_pkgs:
-      - "{{ extra_packages_url }}/rpm/sge-8.1.9-1.x86_64.rpm"
+      - "{{ extra_packages_url }}/rpm/{{ sge_rpm }}"
+      - m4
   tags: sge_sumbit
 
 - name: sge_sumbit | Copy installation config file to destination

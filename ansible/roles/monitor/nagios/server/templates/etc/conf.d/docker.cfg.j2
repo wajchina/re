@@ -3,20 +3,6 @@
 {% if groups['docker'] is defined %}
 {% if groups['docker'] != [] %}
 
-# docker node
-define hostgroup {
-    hostgroup_name          docker
-    alias                   docker-node
-}
-
-{% for host in groups['docker'] %}
-define host {
-    use                     linux-server
-    host_name               {{ host }}
-    hostgroups              docker
-}
-{% endfor %}
-
 # service for docker
 define service{
     use                     generic-service,graphed-service

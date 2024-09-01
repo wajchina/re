@@ -4,9 +4,10 @@
   ansible.builtin.yum:
     name: "{{ sge_qmaster_pkgs }}"
     state: present
+    disable_gpg_check: true
   vars:
     sge_qmaster_pkgs:
-      - "{{ extra_packages_url }}/rpm/sge-8.1.9-1.x86_64.rpm"
+      - "{{ extra_packages_url }}/rpm/{{ sge_rpm }}"
       - pdsh
   tags: sge_qmaster
 
@@ -21,6 +22,15 @@
   args:
     chdir: "{{ sge_root }}"
     creates: /etc/init.d/sgemaster*
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+  tags: sge_qmaster
+
+- name: sge_qmaster | Configure sge master only
+  ansible.builtin.command: ./inst_sge -m -auto installation.conf
+  args:
+    chdir: "{{ sge_root }}"
+    creates: /etc/systemd/system/sgemaster.service
+  when: ansible_distribution == "Rocky" and ansible_distribution_major_version == "8"
   tags: sge_qmaster
 
 - name: sge_qmaster | Wait for 60s before starting sge service
@@ -32,6 +42,15 @@
     name: "sgemaster.{{ sge_cluster_name }}"
     enabled: yes
     state: started
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+  tags: sge_qmaster
+
+- name: sge_qmaster | Enable sge master service
+  ansible.builtin.service:
+    name: "sgemaster"
+    enabled: yes
+    state: started
+  when: ansible_distribution == "Rocky" and ansible_distribution_major_version == "8"
   tags: sge_qmaster
 
 - name: sge_qmaster | Copy sge environment settings for sh

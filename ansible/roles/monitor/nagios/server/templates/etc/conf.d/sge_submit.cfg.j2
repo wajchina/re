@@ -3,20 +3,6 @@
 {% if groups['sge_submit'] is defined %}
 {% if groups['sge_submit'] != [] %}
 
-# sge_submit node
-define hostgroup {
-    hostgroup_name          sge_submit
-    alias                   sge_submit-node
-}
-
-{% for host in groups['sge_submit'] %}
-define host {
-    use                     linux-server
-    host_name               {{ host }}
-    hostgroups              sge_submit
-}
-{% endfor %}
-
 define service{
     use                     generic-service,graphed-service
     hostgroup_name          sge_submit

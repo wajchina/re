@@ -1,0 +1,15 @@
+---
+
+- name: Config yum.conf exclude kernel and kmod-kvdo update
+  lineinfile:
+    destfile: /etc/yum.conf
+    state: present
+    line: "exclude=kernel*,vdo,kmod-kvdo"
+  tags: diy-package
+
+- name: Install diy packages
+  ansible.builtin.package:
+    name: "{{ diy_packages }}"
+    state: present
+  when: diy_packages is defined and diy_packages != []
+  tags: diy-package
